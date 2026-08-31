@@ -117,6 +117,30 @@
         tbody tr:hover {
             background-color: rgba(37, 99, 235, 0.04);
         }
+
+        /* Alinhamento à direita para as colunas de valores numéricos de Fornecedores */
+        #tblFornecedores td:nth-child(6),
+        #tblFornecedores td:nth-child(7),
+        #tblFornecedores td:nth-child(8) {
+            text-align: right !important;
+        }
+
+        /* Centralização perfeita da coluna de Status e ajuste de quebra */
+        #tblFornecedores td:nth-child(9),
+        #tblFornecedores th:last-child {
+            text-align: center !important;
+        }
+
+        /* Estilização para impedir a quebra estranha da tag/badge de status */
+        .status-badge, .badge, td span {
+            white-space: nowrap !important; /* Impede a quebra de linha do texto dentro da tag */
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 4px 8px;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
@@ -237,13 +261,13 @@
                             <tr>
                                 <th style="width: 3%; text-align: center;"></th>
                                 <th style="width: 9%; text-align: center;">Data</th>
-                                <th style="width: 10%; text-align: center;">Conta Contábil</th>
-                                <th style="width: 32%; text-align: left;">Descrição do Lançamento</th>
+                                <th style="width: 7%; text-align: center;">Conta Contábil</th>
+                                <th style="width: 31%; text-align: left;">Descrição do Lançamento</th>
                                 <th style="width: 10%; text-align: center;">Nº da NF</th>
-                                <th style="width: 12%; text-align: center;">Total Pagamentos</th>
-                                <th style="width: 12%; text-align: center;">Total Compras</th>
-                                <th style="width: 12%; text-align: center;">Saldo</th>
-                                <th style="width: 10%; text-align: center;">Status</th>
+                                <th style="width: 11%; text-align: right;">Total Pagamentos</th>
+                                <th style="width: 11%; text-align: right;">Total Compras</th>
+                                <th style="width: 11%; text-align: right;">Saldo</th>
+                                <th style="width: 17%; text-align: center;">Status</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
