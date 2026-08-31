@@ -1,141 +1,323 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClickConcilia</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClickConcilia - Ferramenta de Conciliação</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- Fonte Moderna (Plus Jakarta Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg-dark: #121927;
+      --bg-light: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --success-bg: #ecfdf5;
+      --success-border: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f1f5f9;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Navbar */
+    .navbar {
+      background-color: var(--bg-dark);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #ffffff;
+      text-decoration: none;
+    }
+
+    .brand img {
+      height: 36px;
+      width: auto;
+    }
+
+    .brand-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    .nav-btn {
+      background-color: transparent;
+      color: #94a3b8;
+      border: 1px solid transparent;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn:hover {
+      color: #ffffff;
+    }
+
+    .nav-btn.active {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Layout Principal */
+    .container {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+      width: 100%;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--text-main);
+    }
+
+    /* Grid de Uploads */
+    .upload-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .upload-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 32px 20px;
+      text-align: center;
+      background-color: var(--bg-light);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--primary-color);
+      background-color: #eff6ff;
+    }
+
+    .drop-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+
+    .drop-zone h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .drop-instructions {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .drop-instructions span {
+      color: var(--primary-color);
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    .file-formats {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .drop-zone input[type="file"] {
+      display: none;
+    }
+
+    /* Estado quando o arquivo é carregado */
+    .drop-zone.has-file {
+      border-color: var(--success-border);
+      background-color: var(--success-bg);
+    }
+
+    .drop-zone.has-file .drop-instructions {
+      color: #065f46;
+      font-weight: 600;
+    }
+
+    /* Botão Ação */
+    .btn-submit {
+      width: 100%;
+      background-color: var(--primary-color);
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      background-color: var(--primary-hover);
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>ClickConcilia</h1>
-        <nav>
-            <button class="nav-btn active" onclick="mudarAba('bancaria')">🏦 Conciliação Bancária</button>
-            <button class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
-        </nav>
-    </header>
 
-    <main>
-        <!-- MÓDULO: CONCILIAÇÃO BANCÁRIA -->
-        <section id="mod-bancaria" class="modulo active">
-            <h2>Conciliação Bancária</h2>
-            <div class="upload-container">
-                <div class="dropzone">
-                    <h3>Extrato</h3>
-                    <p>Formatos: .OFX, .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf">
-                </div>
-                <div class="dropzone">
-                    <h3>Razão</h3>
-                    <p>Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf">
-                </div>
-            </div>
-            
-            <button class="btn-primary" onclick="processarConciliacaoBancaria()">Processar Conciliação</button>
+  <!-- Menu Superior -->
+  <header class="navbar">
+    <a href="#" class="brand">
+      <img src="logo.png" alt="Logo ClickConcilia" onerror="this.style.display='none'">
+      <span class="brand-title">ClickConcilia</span>
+    </a>
+    <nav class="nav-links">
+      <button class="nav-btn active">📊 Conciliação Bancária</button>
+      <button class="nav-btn">🏢 Conciliação de Fornecedores</button>
+    </nav>
+  </header>
 
-            <div id="loadingSpinner" class="spinner-container hidden">
-                <div class="spinner"></div>
-                <p>Processando arquivos, aguarde...</p>
-            </div>
+  <!-- Conteúdo Principal -->
+  <main class="container">
+    <section class="card">
+      <h1 class="card-title">Conciliação Bancária</h1>
 
-            <div id="resultadoBancaria" class="resultado-container hidden">
-                <div class="cards-resumo">
-                    <div class="card azul">
-                        <h4 id="qtdTotalExtrato">0</h4>
-                        <p>Lançamentos no Extrato</p>
-                    </div>
-                    <div class="card azul">
-                        <h4 id="qtdTotalRazao">0</h4>
-                        <p>Lançamentos no Razão</p>
-                    </div>
-                    <div class="card vermelho">
-                        <h4 id="qtdPendentes">0</h4>
-                        <p>Lançamentos Pendentes</p>
-                    </div>
-                </div>
+      <div class="upload-container">
+        <!-- Extrato -->
+        <div class="drop-zone" id="zone-extrato">
+          <div class="drop-icon">📄</div>
+          <h3>Extrato</h3>
+          <p class="drop-instructions" id="label-extrato">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
+          <p class="file-formats">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
+          <input type="file" id="file-extrato" accept=".ofx,.csv,.xlsx,.pdf">
+        </div>
 
-                <div class="tabela-container" style="margin-top: 2rem;">
-                    <h3>📋 Lançamentos Pendentes / Divergências</h3>
-                    <table id="tblExtrato">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Descrição</th>
-                                <th>Valor</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
+        <!-- Razão -->
+        <div class="drop-zone" id="zone-razao">
+          <div class="drop-icon">📊</div>
+          <h3>Razão</h3>
+          <p class="drop-instructions" id="label-razao">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
+          <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
+          <input type="file" id="file-razao" accept=".csv,.xlsx,.pdf">
+        </div>
+      </div>
 
-        <!-- MÓDULO: CONCILIAÇÃO DE FORNECEDORES -->
-        <section id="mod-fornecedores" class="modulo hidden">
-            <h2>Conciliação de Fornecedores</h2>
-            <div class="upload-container">
-                <div class="dropzone unica">
-                    <h3>Razão de Fornecedores</h3>
-                    <p>Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf">
-                </div>
-            </div>
-            <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos de NFs</button>
+      <button class="btn-submit" id="btn-processar">
+        <span>⚙️</span> Processar Conciliação
+      </button>
+    </section>
+  </main>
 
-            <div id="loadingSpinnerFornecedores" class="spinner-container hidden">
-                <div class="spinner"></div>
-                <p>Analisando razões de fornecedores, aguarde...</p>
-            </div>
+  <script>
+    function setupDropZone(zoneId, inputId, labelId) {
+      const zone = document.getElementById(zoneId);
+      const input = document.getElementById(inputId);
+      const label = document.getElementById(labelId);
 
-            <div id="resultadoFornecedores" class="resultado-container hidden">
-                <div class="cards-resumo">
-                    <div class="card azul" id="cardFiltroTodos" onclick="filtrarTabelaFornecedores('todos')" style="cursor: pointer;">
-                        <h4 id="qtdTotalFornecedores">0</h4>
-                        <p>Total de Lançamentos</p>
-                    </div>
-                    <div class="card amarelo" id="cardFiltroAberto" onclick="filtrarTabelaFornecedores('aberto')" style="cursor: pointer;">
-                        <h4 id="qtdComSaldo">0</h4>
-                        <p>NFs / Títulos em Aberto</p>
-                    </div>
-                    <div class="card verde" id="cardFiltroQuitados" onclick="filtrarTabelaFornecedores('quitados')" style="cursor: pointer;">
-                        <h4 id="qtdQuitados">0</h4>
-                        <p>Títulos Quitados</p>
-                    </div>
-                </div>
+      // Clique no container abre o seletor
+      zone.addEventListener('click', () => input.click());
 
-                <div class="tabela-container" style="margin-top: 2rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
-                        <h3 id="tituloTabelaFornecedores">📋 Resumo de Títulos e Saldos por Fornecedor (Todos)</h3>
-                        <button class="btn-secondary" onclick="exportarRelatorioFornecedoresXLSX()" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                            📊 Exportar Filtro em Excel (.xlsx)
-                        </button>
-                    </div>
+      // Arrastar sobre a caixa
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
 
-                    <table id="tblFornecedores">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px; text-align: center;"></th>
-                                <th>Data</th>
-                                <th>Conta Contábil</th>
-                                <th>Descrição do Lançamento</th>
-                                <th>Nº da NF</th>
-                                <th>Total Pagamentos (Débitos)</th>
-                                <th>Total Compras (Créditos)</th>
-                                <th>Saldo Remanescente</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </main>
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dragover');
+      });
 
-    <script src="script.js"></script>
+      // Soltar arquivo
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+          input.files = e.dataTransfer.files;
+          updateState();
+        }
+      });
+
+      // Mudança de arquivo via input
+      input.addEventListener('change', updateState);
+
+      function updateState() {
+        if (input.files.length > 0) {
+          zone.classList.add('has-file');
+          label.innerHTML = `✅ <strong>${input.files[0].name}</strong>`;
+        }
+      }
+    }
+
+    setupDropZone('zone-extrato', 'file-extrato', 'label-extrato');
+    setupDropZone('zone-razao', 'file-razao', 'label-razao');
+
+    // Feedback de clique no botão
+    document.getElementById('btn-processar').addEventListener('click', () => {
+      const extrato = document.getElementById('file-extrato').files[0];
+      const razao = document.getElementById('file-razao').files[0];
+
+      if (!extrato || !razao) {
+        alert('Por favor, selecione ambos os arquivos (Extrato e Razão) antes de processar.');
+      } else {
+        alert(`Processando conciliação entre:\n- ${extrato.name}\n- ${razao.name}`);
+      }
+    });
+  </script>
 </body>
 </html>
