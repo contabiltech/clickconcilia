@@ -14,9 +14,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Bibliotecas externas para leitura de XLSX e geração de Excel -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
   <style>
     :root {
       --primary-color: #2563eb;
@@ -29,10 +26,6 @@
       --text-muted: #64748b;
       --success-bg: #ecfdf5;
       --success-border: #10b981;
-      --danger-bg: #fef2f2;
-      --danger-border: #ef4444;
-      --warning-bg: #fffbeeb;
-      --warning-border: #f59e0b;
     }
 
     * {
@@ -111,7 +104,7 @@
 
     /* Layout Principal */
     .container {
-      max-width: 1100px;
+      max-width: 1000px;
       margin: 40px auto;
       padding: 0 20px;
       width: 100%;
@@ -217,19 +210,6 @@
       font-weight: 600;
     }
 
-    /* Mensagem de Erro Inline */
-    .error-msg {
-      display: none;
-      background-color: #fef2f2;
-      border: 1px solid #fca5a5;
-      color: #991b1b;
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      margin-bottom: 20px;
-      font-weight: 500;
-    }
-
     /* Botão Ação */
     .btn-submit {
       width: 100%;
@@ -251,112 +231,6 @@
     .btn-submit:hover {
       background-color: var(--primary-hover);
     }
-
-    /* Área de Resultados */
-    .results-container {
-      display: none;
-      margin-top: 36px;
-      border-top: 2px dashed var(--border-color);
-      padding-top: 28px;
-    }
-
-    .summary-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .summary-card {
-      padding: 16px;
-      border-radius: 10px;
-      background-color: var(--bg-light);
-      border: 1px solid var(--border-color);
-    }
-
-    .summary-card h4 {
-      font-size: 13px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-    }
-
-    .summary-card p {
-      font-size: 22px;
-      font-weight: 700;
-    }
-
-    .summary-card.conciliado { border-color: #10b981; background-color: #f0fdf4; color: #166534; }
-    .summary-card.pendente { border-color: #ef4444; background-color: #fef2f2; color: #991b1b; }
-
-    .results-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .btn-export {
-      background-color: #10b981;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-export:hover {
-      background-color: #059669;
-    }
-
-    /* Tabela de Resultados */
-    .table-wrapper {
-      overflow-x: auto;
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 14px;
-    }
-
-    th {
-      background-color: #f8fafc;
-      padding: 12px 16px;
-      font-weight: 600;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    td {
-      padding: 12px 16px;
-      border-bottom: 1px solid #e2e8f0;
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .badge-success { background-color: #dcfce7; color: #15803d; }
-    .badge-danger { background-color: #fee2e2; color: #b91c1c; }
-    .badge-warning { background-color: #fef3c7; color: #b45309; }
   </style>
 </head>
 <body>
@@ -377,9 +251,6 @@
   <main class="container">
     <section class="card">
 
-      <!-- Alerta de Erro / Validação sem Alert Popup -->
-      <div class="error-msg" id="error-message"></div>
-
       <!-- ABA 1: CONCILIAÇÃO BANCÁRIA -->
       <div id="tab-bancaria" class="tab-content active">
         <h1 class="card-title">Conciliação Bancária</h1>
@@ -389,8 +260,8 @@
             <div class="drop-icon">📄</div>
             <h3>Extrato</h3>
             <p class="drop-instructions" id="label-extrato">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-            <p class="file-formats">Formatos: .OFX, .CSV, .XLSX</p>
-            <input type="file" id="file-extrato" accept=".ofx,.csv,.xlsx">
+            <p class="file-formats">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
+            <input type="file" id="file-extrato" accept=".ofx,.csv,.xlsx,.pdf">
           </div>
 
           <!-- Razão Bancário -->
@@ -398,8 +269,8 @@
             <div class="drop-icon">📊</div>
             <h3>Razão</h3>
             <p class="drop-instructions" id="label-razao-bancaria">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-            <p class="file-formats">Formatos: .CSV, .XLSX</p>
-            <input type="file" id="file-razao-bancaria" accept=".csv,.xlsx">
+            <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
+            <input type="file" id="file-razao-bancaria" accept=".csv,.xlsx,.pdf">
           </div>
         </div>
       </div>
@@ -413,8 +284,8 @@
             <div class="drop-icon">📊</div>
             <h3>Razão</h3>
             <p class="drop-instructions" id="label-razao-fornecedores">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-            <p class="file-formats">Formatos: .CSV, .XLSX</p>
-            <input type="file" id="file-razao-fornecedores" accept=".csv,.xlsx">
+            <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
+            <input type="file" id="file-razao-fornecedores" accept=".csv,.xlsx,.pdf">
           </div>
         </div>
       </div>
@@ -423,56 +294,28 @@
         <span>⚙️</span> Processar Conciliação
       </button>
 
-      <!-- PAINEL DE RESULTADOS (EXIBIDO NA TELA APÓS PROCESSAR) -->
-      <div class="results-container" id="results-panel">
-        <div class="results-actions">
-          <h2>Relatório de Conciliação</h2>
-          <button type="button" class="btn-export" id="btn-exportar">📥 Baixar Excel</button>
-        </div>
-
-        <div class="summary-cards" id="summary-cards-container"></div>
-
-        <div class="table-wrapper">
-          <table id="table-results">
-            <thead>
-              <tr id="table-header"></tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-          </table>
-        </div>
-      </div>
-
     </section>
   </main>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      let modoAtual = 'bancaria';
-      let resultadosAtuais = [];
-
-      // Elementos de mensagem e resultados
-      const errorMsg = document.getElementById('error-message');
-      const resultsPanel = document.getElementById('results-panel');
-
-      function showError(text) {
-        errorMsg.textContent = text;
-        errorMsg.style.display = 'block';
-      }
-
-      function clearError() {
-        errorMsg.textContent = '';
-        errorMsg.style.display = 'none';
-      }
-
-      // Configuração dos DropZones
+      // Configuração genérica de DropZones
       function setupDropZone(zoneId, inputId, labelId) {
         const zone = document.getElementById(zoneId);
         const input = document.getElementById(inputId);
         const label = document.getElementById(labelId);
 
         zone.addEventListener('click', () => input.click());
-        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
-        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          zone.classList.add('dragover');
+        });
+
+        zone.addEventListener('dragleave', () => {
+          zone.classList.remove('dragover');
+        });
+
         zone.addEventListener('drop', (e) => {
           e.preventDefault();
           zone.classList.remove('dragover');
@@ -485,8 +328,6 @@
         input.addEventListener('change', updateState);
 
         function updateState() {
-          clearError();
-          resultsPanel.style.display = 'none';
           if (input.files.length > 0) {
             zone.classList.add('has-file');
             label.innerHTML = `✅ <strong>${input.files[0].name}</strong>`;
@@ -497,6 +338,7 @@
         }
       }
 
+      // Ativação dos DropZones individuais
       setupDropZone('zone-extrato', 'file-extrato', 'label-extrato');
       setupDropZone('zone-razao-bancaria', 'file-razao-bancaria', 'label-razao-bancaria');
       setupDropZone('zone-razao-fornecedores', 'file-razao-fornecedores', 'label-razao-fornecedores');
@@ -507,9 +349,9 @@
       const tabBancaria = document.getElementById('tab-bancaria');
       const tabFornecedores = document.getElementById('tab-fornecedores');
 
+      let modoAtual = 'bancaria';
+
       function resetInputs() {
-        clearError();
-        resultsPanel.style.display = 'none';
         ['file-extrato', 'file-razao-bancaria', 'file-razao-fornecedores'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
@@ -539,220 +381,28 @@
         resetInputs();
       });
 
-      // Leitura de Arquivo (CSV ou XLSX)
-      async function readFile(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-
-          reader.onload = (e) => {
-            try {
-              if (isExcel) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.SheetNames[0];
-                const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { header: 1 });
-                resolve(json);
-              } else {
-                const text = e.target.result;
-                const lines = text.split('\n').map(line => line.split(/[,;\t]/).map(cell => cell.trim().replace(/^["']|["']$/g, '')));
-                resolve(lines.filter(l => l.length > 0 && l.some(c => c !== '')));
-              }
-            } catch (err) {
-              reject(err);
-            }
-          };
-
-          if (isExcel) reader.readAsArrayBuffer(file);
-          else reader.readAsText(file, 'UTF-8');
-        });
-      }
-
-      // Normalizar linhas em objetos legíveis
-      function parseRows(rows) {
-        if (!rows || rows.length < 2) return [];
-        const headers = rows[0].map(h => String(h).toLowerCase().trim());
-        const result = [];
-
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length === 0) continue;
-          let obj = {};
-          headers.forEach((h, idx) => {
-            obj[h] = row[idx] !== undefined ? String(row[idx]).trim() : '';
-          });
-          result.push(obj);
-        }
-        return result;
-      }
-
-      // Função de Processamento Principal
-      document.getElementById('btn-processar').addEventListener('click', async (e) => {
+      // Botão de Processar
+      document.getElementById('btn-processar').addEventListener('click', (e) => {
         e.preventDefault();
-        clearError();
 
         if (modoAtual === 'bancaria') {
-          const fileExtrato = document.getElementById('file-extrato').files[0];
-          const fileRazao = document.getElementById('file-razao-bancaria').files[0];
+          const extrato = document.getElementById('file-extrato').files[0];
+          const razao = document.getElementById('file-razao-bancaria').files[0];
 
-          if (!fileExtrato || !fileRazao) {
-            showError('Por favor, selecione ambos os arquivos (Extrato e Razão) para realizar a conciliação bancária.');
-            return;
+          if (!extrato || !razao) {
+            alert('Por favor, selecione ambos os arquivos (Extrato e Razão) antes de processar.');
+          } else {
+            alert(`Processando Conciliação Bancária:\n\n- Extrato: ${extrato.name}\n- Razão: ${razao.name}`);
           }
-
-          try {
-            const rawExtrato = await readFile(fileExtrato);
-            const rawRazao = await readFile(fileRazao);
-
-            const extratoData = parseRows(rawExtrato);
-            const razaoData = parseRows(rawRazao);
-
-            executarConciliacaoBancaria(extratoData, razaoData);
-          } catch (err) {
-            showError('Erro ao ler os arquivos. Certifique-se de enviar planilhas Válidas em CSV ou XLSX.');
-          }
-
         } else {
-          const fileRazaoForn = document.getElementById('file-razao-fornecedores').files[0];
+          const razaoFornecedores = document.getElementById('file-razao-fornecedores').files[0];
 
-          if (!fileRazaoForn) {
-            showError('Por favor, selecione o arquivo do Razão antes de processar.');
-            return;
-          }
-
-          try {
-            const rawRazao = await readFile(fileRazaoForn);
-            const razaoData = parseRows(rawRazao);
-
-            executarConciliacaoFornecedores(razaoData);
-          } catch (err) {
-            showError('Erro ao ler o arquivo do Razão de Fornecedores.');
+          if (!razaoFornecedores) {
+            alert('Por favor, selecione o arquivo do Razão antes de processar.');
+          } else {
+            alert(`Processando Conciliação de Fornecedores:\n\n- Razão: ${razaoFornecedores.name}`);
           }
         }
-      });
-
-      // Lógica da Conciliação Bancária
-      function executarConciliacaoBancaria(extrato, razao) {
-        resultadosAtuais = [];
-        let conciliadosCount = 0;
-        let pendentesCount = 0;
-
-        extrato.forEach((item, index) => {
-          const data = item.data || item.date || item['data do lançamento'] || '-';
-          const descricao = item.descricao || item.historico || item.memo || item['descrição'] || `Lançamento ${index + 1}`;
-          const valor = item.valor || item.amount || item['valor (r$)'] || '0';
-
-          // Procurar correspondente no Razão
-          const match = razao.find(r => {
-            const valR = r.valor || r.amount || r['valor (r$)'];
-            return valR && Math.abs(parseFloat(valR.replace(',', '.'))) === Math.abs(parseFloat(valor.replace(',', '.')));
-          });
-
-          const status = match ? 'Conciliado' : 'Pendente no Razão';
-          if (match) conciliadosCount++; else pendentesCount++;
-
-          resultadosAtuais.push({
-            'Data': data,
-            'Descrição': descricao,
-            'Valor (R$)': valor,
-            'Status': status,
-            'Correspondência': match ? (match.descricao || match.historico || 'Localizado no Razão') : 'Não encontrado'
-          });
-        });
-
-        exibirResultados(
-          ['Data', 'Descrição', 'Valor (R$)', 'Status', 'Correspondência'],
-          resultadosAtuais,
-          [
-            { title: 'Total Lançamentos', value: extrato.length, class: '' },
-            { title: 'Conciliados', value: conciliadosCount, class: 'conciliado' },
-            { title: 'Pendentes', value: pendentesCount, class: 'pendente' }
-          ]
-        );
-      }
-
-      // Lógica da Conciliação de Fornecedores
-      function executarConciliacaoFornecedores(razao) {
-        resultadosAtuais = [];
-        let pendentes = 0;
-        let pagos = 0;
-
-        razao.forEach((item, index) => {
-          const fornecedor = item.fornecedor || item.razao_social || item.nome || item.cliente || `Fornecedor ${index + 1}`;
-          const documento = item.documento || item.nf || item.duplicata || '-';
-          const valor = item.valor || item.saldo || item.amount || '0';
-          const statusRaw = (item.status || item.situacao || '').toLowerCase();
-
-          const isPago = statusRaw.includes('pago') || statusRaw.includes('baixado') || statusRaw.includes('liquidado');
-          const status = isPago ? 'Liquidado' : 'Pendente / A Pagar';
-
-          if (isPago) pagos++; else pendentes++;
-
-          resultadosAtuais.push({
-            'Fornecedor / Razão Social': fornecedor,
-            'Documento / NF': documento,
-            'Valor (R$)': valor,
-            'Status Conciliação': status
-          });
-        });
-
-        exibirResultados(
-          ['Fornecedor / Razão Social', 'Documento / NF', 'Valor (R$)', 'Status Conciliação'],
-          resultadosAtuais,
-          [
-            { title: 'Total Registros', value: razao.length, class: '' },
-            { title: 'Liquidados', value: pagos, class: 'conciliado' },
-            { title: 'A Pagar / Pendentes', value: pendentes, class: 'pendente' }
-          ]
-        );
-      }
-
-      // Exibir Tabela de Resultados
-      function exibirResultados(headers, data, summary) {
-        // Renderizar Cards de Resumo
-        const summaryContainer = document.getElementById('summary-cards-container');
-        summaryContainer.innerHTML = summary.map(s => `
-          <div class="summary-card ${s.class}">
-            <h4>${s.title}</h4>
-            <p>${s.value}</p>
-          </div>
-        `).join('');
-
-        // Renderizar Cabeçalho da Tabela
-        const theader = document.getElementById('table-header');
-        theader.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
-
-        // Renderizar Corpo da Tabela
-        const tbody = document.getElementById('table-body');
-        tbody.innerHTML = data.map(row => `
-          <tr>
-            ${headers.map(h => {
-              const val = row[h] || '-';
-              if (h.toLowerCase().includes('status')) {
-                const badgeClass = val.toLowerCase().includes('conciliado') || val.toLowerCase().includes('liquidado') 
-                  ? 'badge-success' 
-                  : 'badge-danger';
-                return `<td><span class="badge ${badgeClass}">${val}</span></td>`;
-              }
-              return `<td>${val}</td>`;
-            }).join('')}
-          </tr>
-        `).join('');
-
-        resultsPanel.style.display = 'block';
-        resultsPanel.scrollIntoView({ behavior: 'smooth' });
-      }
-
-      // Exportar para Excel
-      document.getElementById('btn-exportar').addEventListener('click', () => {
-        if (resultadosAtuais.length === 0) return;
-
-        const worksheet = XLSX.utils.json_to_sheet(resultadosAtuais);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Conciliacao");
-
-        const fileName = modoAtual === 'bancaria' ? 'conciliacao_bancaria.xlsx' : 'conciliacao_fornecedores.xlsx';
-        XLSX.writeFile(workbook, fileName);
       });
     });
   </script>
