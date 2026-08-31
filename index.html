@@ -249,7 +249,7 @@
 
   <!-- Conteúdo Principal -->
   <main class="container">
-    <section class="card">
+    <form class="card" id="form-conciliacao" action="#" method="POST" enctype="multipart/form-data">
 
       <!-- ABA 1: CONCILIAÇÃO BANCÁRIA -->
       <div id="tab-bancaria" class="tab-content active">
@@ -261,7 +261,7 @@
             <h3>Extrato</h3>
             <p class="drop-instructions" id="label-extrato">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
             <p class="file-formats">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
-            <input type="file" id="file-extrato" accept=".ofx,.csv,.xlsx,.pdf">
+            <input type="file" id="file-extrato" name="extrato_bancario" accept=".ofx,.csv,.xlsx,.pdf">
           </div>
 
           <!-- Razão Bancário -->
@@ -270,7 +270,7 @@
             <h3>Razão</h3>
             <p class="drop-instructions" id="label-razao-bancaria">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
             <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
-            <input type="file" id="file-razao-bancaria" accept=".csv,.xlsx,.pdf">
+            <input type="file" id="file-razao-bancaria" name="razao_bancario" accept=".csv,.xlsx,.pdf">
           </div>
         </div>
       </div>
@@ -285,16 +285,16 @@
             <h3>Razão</h3>
             <p class="drop-instructions" id="label-razao-fornecedores">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
             <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
-            <input type="file" id="file-razao-fornecedores" accept=".csv,.xlsx,.pdf">
+            <input type="file" id="file-razao-fornecedores" name="razao_fornecedores" accept=".csv,.xlsx,.pdf">
           </div>
         </div>
       </div>
 
-      <button type="button" class="btn-submit" id="btn-processar">
+      <button type="submit" class="btn-submit" id="btn-processar">
         <span>⚙️</span> Processar Conciliação
       </button>
 
-    </section>
+    </form>
   </main>
 
   <script>
@@ -338,72 +338,65 @@
         }
       }
 
-      // Ativação dos DropZones individuais
+      // Ativação dos DropZones
       setupDropZone('zone-extrato', 'file-extrato', 'label-extrato');
       setupDropZone('zone-razao-bancaria', 'file-razao-bancaria', 'label-razao-bancaria');
       setupDropZone('zone-razao-fornecedores', 'file-razao-fornecedores', 'label-razao-fornecedores');
 
-      // Troca de Abas
+      // Alternância de Abas com desativação/ativação de inputs para o submit
       const btnBancaria = document.getElementById('btn-tab-bancaria');
       const btnFornecedores = document.getElementById('btn-tab-fornecedores');
       const tabBancaria = document.getElementById('tab-bancaria');
       const tabFornecedores = document.getElementById('tab-fornecedores');
 
-      let modoAtual = 'bancaria';
+      const fileExtrato = document.getElementById('file-extrato');
+      const fileRazaoBancaria = document.getElementById('file-razao-bancaria');
+      const fileRazaoFornecedores = document.getElementById('file-razao-fornecedores');
 
-      function resetInputs() {
-        ['file-extrato', 'file-razao-bancaria', 'file-razao-fornecedores'].forEach(id => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.value = '';
-            el.dispatchEvent(new Event('change'));
-          }
-        });
+      function clearInput(input) {
+        input.value = '';
+        input.dispatchEvent(new Event('change'));
+      }
+
+      function setMode(modo) {
+        if (modo === 'bancaria') {
+          btnBancaria.classList.add('active');
+          btnFornecedores.classList.remove('active');
+          tabBancaria.classList.add('active');
+          tabFornecedores.classList.remove('active');
+
+          fileExtrato.disabled = false;
+          fileRazaoBancaria.disabled = false;
+          fileRazaoFornecedores.disabled = true;
+
+          clearInput(fileRazaoFornecedores);
+        } else {
+          btnFornecedores.classList.add('active');
+          btnBancaria.classList.remove('active');
+          tabFornecedores.classList.add('active');
+          tabBancaria.classList.remove('active');
+
+          fileExtrato.disabled = true;
+          fileRazaoBancaria.disabled = true;
+          fileRazaoFornecedores.disabled = false;
+
+          clearInput(fileExtrato);
+          clearInput(fileRazaoBancaria);
+        }
       }
 
       btnBancaria.addEventListener('click', (e) => {
         e.preventDefault();
-        modoAtual = 'bancaria';
-        btnBancaria.classList.add('active');
-        btnFornecedores.classList.remove('active');
-        tabBancaria.classList.add('active');
-        tabFornecedores.classList.remove('active');
-        resetInputs();
+        setMode('bancaria');
       });
 
       btnFornecedores.addEventListener('click', (e) => {
         e.preventDefault();
-        modoAtual = 'fornecedores';
-        btnFornecedores.classList.add('active');
-        btnBancaria.classList.remove('active');
-        tabFornecedores.classList.add('active');
-        tabBancaria.classList.remove('active');
-        resetInputs();
+        setMode('fornecedores');
       });
 
-      // Botão de Processar
-      document.getElementById('btn-processar').addEventListener('click', (e) => {
-        e.preventDefault();
-
-        if (modoAtual === 'bancaria') {
-          const extrato = document.getElementById('file-extrato').files[0];
-          const razao = document.getElementById('file-razao-bancaria').files[0];
-
-          if (!extrato || !razao) {
-            alert('Por favor, selecione ambos os arquivos (Extrato e Razão) antes de processar.');
-          } else {
-            alert(`Processando Conciliação Bancária:\n\n- Extrato: ${extrato.name}\n- Razão: ${razao.name}`);
-          }
-        } else {
-          const razaoFornecedores = document.getElementById('file-razao-fornecedores').files[0];
-
-          if (!razaoFornecedores) {
-            alert('Por favor, selecione o arquivo do Razão antes de processar.');
-          } else {
-            alert(`Processando Conciliação de Fornecedores:\n\n- Razão: ${razaoFornecedores.name}`);
-          }
-        }
-      });
+      // Inicializa no modo Bancária
+      setMode('bancaria');
     });
   </script>
 </body>
