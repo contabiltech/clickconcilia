@@ -101,6 +101,15 @@
             word-wrap: break-word; /* Permite a quebra de linha em descrições longas */
         }
 
+        /* Alinhamento específico para colunas de valores e número da NF */
+        .col-valor-header {
+            text-align: center !important;
+        }
+
+        .col-valor-cell {
+            text-align: right !important;
+        }
+
         tbody tr {
             transition: background-color 0.15s ease;
         }
@@ -170,7 +179,7 @@
                             <tr>
                                 <th style="width: 15%; text-align: center;">Data</th>
                                 <th style="width: 50%; text-align: left;">Descrição</th>
-                                <th style="width: 18%; text-align: right;">Valor</th>
+                                <th style="width: 18%;" class="col-valor-header">Valor</th>
                                 <th style="width: 17%; text-align: center;">Status</th>
                             </tr>
                         </thead>
@@ -230,10 +239,10 @@
                                 <th style="width: 9%; text-align: center;">Data</th>
                                 <th style="width: 10%; text-align: center;">Conta Contábil</th>
                                 <th style="width: 32%; text-align: left;">Descrição do Lançamento</th>
-                                <th style="width: 10%; text-align: right;">Nº da NF</th>
-                                <th style="width: 12%; text-align: right;">Total Pagamentos</th>
-                                <th style="width: 12%; text-align: right;">Total Compras</th>
-                                <th style="width: 12%; text-align: right;">Saldo</th>
+                                <th style="width: 10%; text-align: center;">Nº da NF</th>
+                                <th style="width: 12%; text-align: center;">Total Pagamentos</th>
+                                <th style="width: 12%; text-align: center;">Total Compras</th>
+                                <th style="width: 12%; text-align: center;">Saldo</th>
                                 <th style="width: 10%; text-align: center;">Status</th>
                             </tr>
                         </thead>
