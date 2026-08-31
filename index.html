@@ -7,10 +7,79 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <style>
+        /* Ajustes visuais para aumentar a interatividade ao passar o mouse */
+        header h1 {
+            cursor: pointer;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            user-select: none;
+        }
+
+        header h1:hover {
+            opacity: 0.85;
+            transform: scale(1.02);
+        }
+
+        .dropzone {
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            border-color: #2563eb;
+        }
+
+        .btn-upload-click {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background-color: #2563eb;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+            pointer-events: none; /* Deixa o clique passar para a dropzone */
+        }
+
+        .dropzone:hover .btn-upload-click {
+            background-color: #1d4ed8;
+            transform: scale(1.03);
+        }
+
+        .card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-primary, .btn-secondary {
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(37, 99, 235, 0.04);
+        }
+    </style>
 </head>
 <body>
     <header>
-        <h1>ClickConcilia</h1>
+        <h1 onclick="window.location.reload();" title="Clique para recarregar a página">ClickConcilia</h1>
         <nav>
             <button class="nav-btn active" onclick="mudarAba('bancaria')">🏦 Conciliação Bancária</button>
             <button class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
@@ -18,20 +87,21 @@
     </header>
 
     <main>
-        <!-- MÓDULO: CONCILIAÇÃO BANCÁRIA -->
         <section id="mod-bancaria" class="modulo active">
             <h2>Conciliação Bancária</h2>
             <div class="upload-container">
                 <div class="dropzone" onclick="document.getElementById('extratoFile').click()">
                     <h3>Extrato</h3>
-                    <p id="label-extratoFile">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-                    <p class="formatos">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
+                    <p id="label-extratoFile">Arraste seu arquivo aqui</p>
+                    <div class="btn-upload-click">Clique aqui para enviar</div>
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
                     <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf" style="display: none;">
                 </div>
                 <div class="dropzone" onclick="document.getElementById('razaoFile').click()">
                     <h3>Razão</h3>
-                    <p id="label-razaoFile">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-                    <p class="formatos">Formatos: .CSV, .XLSX, .PDF</p>
+                    <p id="label-razaoFile">Arraste seu arquivo aqui</p>
+                    <div class="btn-upload-click">Clique aqui para enviar</div>
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
                     <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf" style="display: none;">
                 </div>
             </div>
@@ -76,14 +146,14 @@
             </div>
         </section>
 
-        <!-- MÓDULO: CONCILIAÇÃO DE FORNECEDORES -->
         <section id="mod-fornecedores" class="modulo hidden">
             <h2>Conciliação de Fornecedores</h2>
             <div class="upload-container">
                 <div class="dropzone unica" onclick="document.getElementById('fornecedorFile').click()">
                     <h3>Razão de Fornecedores</h3>
-                    <p id="label-fornecedorFile">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-                    <p class="formatos">Formatos: .CSV, .XLSX, .PDF</p>
+                    <p id="label-fornecedorFile">Arraste seu arquivo aqui</p>
+                    <div class="btn-upload-click">Clique aqui para enviar</div>
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
                     <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf" style="display: none;">
                 </div>
             </div>
@@ -140,7 +210,6 @@
     </main>
 
     <script>
-        // Script simples para ativar a interação de Arrastar e Soltar (Drag and Drop)
         document.addEventListener('DOMContentLoaded', () => {
             const inputs = ['extratoFile', 'razaoFile', 'fornecedorFile'];
 
@@ -178,7 +247,7 @@
                 if (input.files.length > 0) {
                     label.innerHTML = `✅ <strong>${input.files[0].name}</strong>`;
                 } else {
-                    label.innerHTML = `Arraste seu arquivo aqui ou <span>clique para enviar</span>`;
+                    label.innerHTML = `Arraste seu arquivo aqui`;
                 }
             }
         });
