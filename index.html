@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClickConcilia - Ferramenta de Conciliação</title>
+  <title>ClickConcilia - Ferramenta de Conciliação | ContabilTech</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -228,30 +228,30 @@
       <span class="brand-title">ClickConcilia</span>
     </a>
     <nav class="nav-links">
-      <button class="nav-btn active">📊 Conciliação Bancária</button>
-      <button class="nav-btn">🏢 Conciliação de Fornecedores</button>
+      <button class="nav-btn active" id="btn-tab-bancaria">📊 Conciliação Bancária</button>
+      <button class="nav-btn" id="btn-tab-fornecedores">🏢 Conciliação de Fornecedores</button>
     </nav>
   </header>
 
   <!-- Conteúdo Principal -->
   <main class="container">
     <section class="card">
-      <h1 class="card-title">Conciliação Bancária</h1>
+      <h1 class="card-title" id="main-title">Conciliação Bancária</h1>
 
       <div class="upload-container">
-        <!-- Extrato -->
+        <!-- Extrato / Documento Primário -->
         <div class="drop-zone" id="zone-extrato">
-          <div class="drop-icon">📄</div>
-          <h3>Extrato</h3>
+          <div class="drop-icon" id="icon-extrato">📄</div>
+          <h3 id="title-extrato">Extrato</h3>
           <p class="drop-instructions" id="label-extrato">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-          <p class="file-formats">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
+          <p class="file-formats" id="formats-extrato">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
           <input type="file" id="file-extrato" accept=".ofx,.csv,.xlsx,.pdf">
         </div>
 
-        <!-- Razão -->
+        <!-- Razão / Contabilidade -->
         <div class="drop-zone" id="zone-razao">
           <div class="drop-icon">📊</div>
-          <h3>Razão</h3>
+          <h3 id="title-razao">Razão</h3>
           <p class="drop-instructions" id="label-razao">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
           <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
           <input type="file" id="file-razao" accept=".csv,.xlsx,.pdf">
@@ -265,15 +265,14 @@
   </main>
 
   <script>
+    // Configuração das Zonas de Upload (Drag & Drop)
     function setupDropZone(zoneId, inputId, labelId) {
       const zone = document.getElementById(zoneId);
       const input = document.getElementById(inputId);
       const label = document.getElementById(labelId);
 
-      // Clique no container abre o seletor
       zone.addEventListener('click', () => input.click());
 
-      // Arrastar sobre a caixa
       zone.addEventListener('dragover', (e) => {
         e.preventDefault();
         zone.classList.add('dragover');
@@ -283,7 +282,6 @@
         zone.classList.remove('dragover');
       });
 
-      // Soltar arquivo
       zone.addEventListener('drop', (e) => {
         e.preventDefault();
         zone.classList.remove('dragover');
@@ -293,13 +291,15 @@
         }
       });
 
-      // Mudança de arquivo via input
       input.addEventListener('change', updateState);
 
       function updateState() {
         if (input.files.length > 0) {
           zone.classList.add('has-file');
           label.innerHTML = `✅ <strong>${input.files[0].name}</strong>`;
+        } else {
+          zone.classList.remove('has-file');
+          label.innerHTML = `Arraste seu arquivo aqui ou <span>clique para enviar</span>`;
         }
       }
     }
@@ -307,15 +307,50 @@
     setupDropZone('zone-extrato', 'file-extrato', 'label-extrato');
     setupDropZone('zone-razao', 'file-razao', 'label-razao');
 
-    // Feedback de clique no botão
+    // Lógica de Alternância entre as Abas (Bancária / Fornecedores)
+    const btnBancaria = document.getElementById('btn-tab-bancaria');
+    const btnFornecedores = document.getElementById('btn-tab-fornecedores');
+    const mainTitle = document.getElementById('main-title');
+    const titleExtrato = document.getElementById('title-extrato');
+    const iconExtrato = document.getElementById('icon-extrato');
+    const formatsExtrato = document.getElementById('formats-extrato');
+
+    let modoAtual = 'bancaria';
+
+    btnBancaria.addEventListener('click', () => {
+      modoAtual = 'bancaria';
+      btnBancaria.classList.add('active');
+      btnFornecedores.classList.remove('active');
+
+      mainTitle.textContent = 'Conciliação Bancária';
+      titleExtrato.textContent = 'Extrato';
+      iconExtrato.textContent = '📄';
+      formatsExtrato.textContent = 'Formatos: .OFX, .CSV, .XLSX, .PDF';
+      document.getElementById('file-extrato').accept = ".ofx,.csv,.xlsx,.pdf";
+    });
+
+    btnFornecedores.addEventListener('click', () => {
+      modoAtual = 'fornecedores';
+      btnFornecedores.classList.add('active');
+      btnBancaria.classList.remove('active');
+
+      mainTitle.textContent = 'Conciliação de Fornecedores';
+      titleExtrato.textContent = 'Notas / Contas a Pagar';
+      iconExtrato.textContent = '🧾';
+      formatsExtrato.textContent = 'Formatos: .CSV, .XLSX, .PDF, .XML';
+      document.getElementById('file-extrato').accept = ".csv,.xlsx,.pdf,.xml";
+    });
+
+    // Ação do Botão Processar
     document.getElementById('btn-processar').addEventListener('click', () => {
       const extrato = document.getElementById('file-extrato').files[0];
       const razao = document.getElementById('file-razao').files[0];
 
       if (!extrato || !razao) {
-        alert('Por favor, selecione ambos os arquivos (Extrato e Razão) antes de processar.');
+        alert('Por favor, selecione ambos os arquivos antes de processar.');
       } else {
-        alert(`Processando conciliação entre:\n- ${extrato.name}\n- ${razao.name}`);
+        const tipo = modoAtual === 'bancaria' ? 'Bancária' : 'de Fornecedores';
+        alert(`Processando Conciliação ${tipo}:\n\n- Arquivo 1: ${extrato.name}\n- Arquivo 2: ${razao.name}`);
       }
     });
   </script>
