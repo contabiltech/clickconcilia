@@ -1,403 +1,188 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClickConcilia - Ferramenta de Conciliação</title>
-
-  <!-- Favicon / Ícone da Aba -->
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-
-  <!-- Fonte Moderna (Plus Jakarta Sans) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --primary-color: #2563eb;
-      --primary-hover: #1d4ed8;
-      --bg-dark: #121927;
-      --bg-light: #f8fafc;
-      --card-bg: #ffffff;
-      --border-color: #cbd5e1;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --success-bg: #ecfdf5;
-      --success-border: #10b981;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #f1f5f9;
-      color: var(--text-main);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    /* Navbar */
-    .navbar {
-      background-color: var(--bg-dark);
-      padding: 16px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: #ffffff;
-      text-decoration: none;
-    }
-
-    .brand img {
-      height: 36px;
-      width: auto;
-    }
-
-    .brand-title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 12px;
-    }
-
-    .nav-btn {
-      background-color: transparent;
-      color: #94a3b8;
-      border: 1px solid transparent;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-btn:hover {
-      color: #ffffff;
-    }
-
-    .nav-btn.active {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    /* Layout Principal */
-    .container {
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 0 20px;
-      width: 100%;
-    }
-
-    .card {
-      background-color: var(--card-bg);
-      border-radius: 16px;
-      padding: 32px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    }
-
-    .card-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 24px;
-      color: var(--text-main);
-    }
-
-    /* Tab Content Controls */
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Grid de Uploads */
-    .upload-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      margin-bottom: 24px;
-    }
-
-    .upload-container.single-card {
-      grid-template-columns: 1fr;
-    }
-
-    @media (max-width: 768px) {
-      .upload-container {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .drop-zone {
-      border: 2px dashed var(--border-color);
-      border-radius: 12px;
-      padding: 32px 20px;
-      text-align: center;
-      background-color: var(--bg-light);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      position: relative;
-    }
-
-    .drop-zone:hover, .drop-zone.dragover {
-      border-color: var(--primary-color);
-      background-color: #eff6ff;
-    }
-
-    .drop-icon {
-      font-size: 36px;
-      margin-bottom: 12px;
-    }
-
-    .drop-zone h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .drop-instructions {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-
-    .drop-instructions span {
-      color: var(--primary-color);
-      font-weight: 600;
-      text-decoration: underline;
-    }
-
-    .file-formats {
-      font-size: 12px;
-      color: #94a3b8;
-    }
-
-    .drop-zone input[type="file"] {
-      display: none;
-    }
-
-    /* Estado de Arquivo Anexado */
-    .drop-zone.has-file {
-      border-color: var(--success-border);
-      background-color: var(--success-bg);
-    }
-
-    .drop-zone.has-file .drop-instructions {
-      color: #065f46;
-      font-weight: 600;
-    }
-
-    /* Botão Ação */
-    .btn-submit {
-      width: 100%;
-      background-color: var(--primary-color);
-      color: #ffffff;
-      border: none;
-      border-radius: 10px;
-      padding: 16px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-submit:hover {
-      background-color: var(--primary-hover);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickConcilia - Ferramenta de Conciliação</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
+    <header>
+        <h1>ClickConcilia</h1>
+        <nav>
+            <button class="nav-btn active" onclick="mudarAba('bancaria')">🏦 Conciliação Bancária</button>
+            <button class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
+        </nav>
+    </header>
 
-  <!-- Menu Superior -->
-  <header class="navbar">
-    <a href="#" class="brand">
-      <img src="favicon.png" alt="Logo ClickConcilia" onerror="this.style.display='none'">
-      <span class="brand-title">ClickConcilia</span>
-    </a>
-    <nav class="nav-links">
-      <button type="button" class="nav-btn active" id="btn-tab-bancaria">📊 Conciliação Bancária</button>
-      <button type="button" class="nav-btn" id="btn-tab-fornecedores">🏢 Conciliação de Fornecedores</button>
-    </nav>
-  </header>
+    <main>
+        <!-- MÓDULO: CONCILIAÇÃO BANCÁRIA -->
+        <section id="mod-bancaria" class="modulo active">
+            <h2>Conciliação Bancária</h2>
+            <div class="upload-container">
+                <div class="dropzone" onclick="document.getElementById('extratoFile').click()">
+                    <h3>Extrato</h3>
+                    <p id="label-extratoFile">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
+                    <p class="formatos">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf" style="display: none;">
+                </div>
+                <div class="dropzone" onclick="document.getElementById('razaoFile').click()">
+                    <h3>Razão</h3>
+                    <p id="label-razaoFile">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
+                    <p class="formatos">Formatos: .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf" style="display: none;">
+                </div>
+            </div>
+            
+            <button class="btn-primary" onclick="processarConciliacaoBancaria()">Processar Conciliação</button>
 
-  <!-- Conteúdo Principal -->
-  <main class="container">
-    <form class="card" id="form-conciliacao" action="#" method="POST" enctype="multipart/form-data">
+            <div id="loadingSpinner" class="spinner-container hidden">
+                <div class="spinner"></div>
+                <p>Processando arquivos, aguarde...</p>
+            </div>
 
-      <!-- ABA 1: CONCILIAÇÃO BANCÁRIA -->
-      <div id="tab-bancaria" class="tab-content active">
-        <h1 class="card-title">Conciliação Bancária</h1>
-        <div class="upload-container">
-          <!-- Extrato Bancário -->
-          <div class="drop-zone" id="zone-extrato">
-            <div class="drop-icon">📄</div>
-            <h3>Extrato</h3>
-            <p class="drop-instructions" id="label-extrato">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-            <p class="file-formats">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
-            <input type="file" id="file-extrato" name="extrato_bancario" accept=".ofx,.csv,.xlsx,.pdf">
-          </div>
+            <div id="resultadoBancaria" class="resultado-container hidden">
+                <div class="cards-resumo">
+                    <div class="card azul">
+                        <h4 id="qtdTotalExtrato">0</h4>
+                        <p>Lançamentos no Extrato</p>
+                    </div>
+                    <div class="card azul">
+                        <h4 id="qtdTotalRazao">0</h4>
+                        <p>Lançamentos no Razão</p>
+                    </div>
+                    <div class="card vermelho">
+                        <h4 id="qtdPendentes">0</h4>
+                        <p>Lançamentos Pendentes</p>
+                    </div>
+                </div>
 
-          <!-- Razão Bancário -->
-          <div class="drop-zone" id="zone-razao-bancaria">
-            <div class="drop-icon">📊</div>
-            <h3>Razão</h3>
-            <p class="drop-instructions" id="label-razao-bancaria">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-            <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
-            <input type="file" id="file-razao-bancaria" name="razao_bancario" accept=".csv,.xlsx,.pdf">
-          </div>
-        </div>
-      </div>
+                <div class="tabela-container" style="margin-top: 2rem;">
+                    <h3>📋 Lançamentos Pendentes / Divergências</h3>
+                    <table id="tblExtrato">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-      <!-- ABA 2: CONCILIAÇÃO DE FORNECEDORES -->
-      <div id="tab-fornecedores" class="tab-content">
-        <h1 class="card-title">Conciliação de Fornecedores</h1>
-        <div class="upload-container single-card">
-          <!-- Razão Fornecedores -->
-          <div class="drop-zone" id="zone-razao-fornecedores">
-            <div class="drop-icon">📊</div>
-            <h3>Razão</h3>
-            <p class="drop-instructions" id="label-razao-fornecedores">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-            <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
-            <input type="file" id="file-razao-fornecedores" name="razao_fornecedores" accept=".csv,.xlsx,.pdf">
-          </div>
-        </div>
-      </div>
+        <!-- MÓDULO: CONCILIAÇÃO DE FORNECEDORES -->
+        <section id="mod-fornecedores" class="modulo hidden">
+            <h2>Conciliação de Fornecedores</h2>
+            <div class="upload-container">
+                <div class="dropzone unica" onclick="document.getElementById('fornecedorFile').click()">
+                    <h3>Razão de Fornecedores</h3>
+                    <p id="label-fornecedorFile">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
+                    <p class="formatos">Formatos: .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf" style="display: none;">
+                </div>
+            </div>
+            <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos de NFs</button>
 
-      <button type="submit" class="btn-submit" id="btn-processar">
-        <span>⚙️</span> Processar Conciliação
-      </button>
+            <div id="loadingSpinnerFornecedores" class="spinner-container hidden">
+                <div class="spinner"></div>
+                <p>Analisando razões de fornecedores, aguarde...</p>
+            </div>
 
-    </form>
-  </main>
+            <div id="resultadoFornecedores" class="resultado-container hidden">
+                <div class="cards-resumo">
+                    <div class="card azul" id="cardFiltroTodos" onclick="filtrarTabelaFornecedores('todos')" style="cursor: pointer;">
+                        <h4 id="qtdTotalFornecedores">0</h4>
+                        <p>Total de Lançamentos</p>
+                    </div>
+                    <div class="card amarelo" id="cardFiltroAberto" onclick="filtrarTabelaFornecedores('aberto')" style="cursor: pointer;">
+                        <h4 id="qtdComSaldo">0</h4>
+                        <p>NFs / Títulos em Aberto</p>
+                    </div>
+                    <div class="card verde" id="cardFiltroQuitados" onclick="filtrarTabelaFornecedores('quitados')" style="cursor: pointer;">
+                        <h4 id="qtdQuitados">0</h4>
+                        <p>Títulos Quitados</p>
+                    </div>
+                </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Configuração genérica de DropZones
-      function setupDropZone(zoneId, inputId, labelId) {
-        const zone = document.getElementById(zoneId);
-        const input = document.getElementById(inputId);
-        const label = document.getElementById(labelId);
+                <div class="tabela-container" style="margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+                        <h3 id="tituloTabelaFornecedores">📋 Resumo de Títulos e Saldos por Fornecedor (Todos)</h3>
+                        <button class="btn-secondary" onclick="exportarRelatorioFornecedoresXLSX()" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                            📊 Exportar Filtro em Excel (.xlsx)
+                        </button>
+                    </div>
 
-        zone.addEventListener('click', () => input.click());
+                    <table id="tblFornecedores">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;"></th>
+                                <th>Data</th>
+                                <th>Conta Contábil</th>
+                                <th>Descrição do Lançamento</th>
+                                <th>Nº da NF</th>
+                                <th>Total Pagamentos (Débitos)</th>
+                                <th>Total Compras (Créditos)</th>
+                                <th>Saldo Remanescente</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
 
-        zone.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          zone.classList.add('dragover');
+    <script>
+        // Script simples para ativar a interação de Arrastar e Soltar (Drag and Drop)
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = ['extratoFile', 'razaoFile', 'fornecedorFile'];
+
+            inputs.forEach(id => {
+                const input = document.getElementById(id);
+                if (!input) return;
+                
+                const dropzone = input.parentElement;
+                const label = document.getElementById(`label-${id}`);
+
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.add('dragover');
+                });
+
+                dropzone.addEventListener('dragleave', () => {
+                    dropzone.classList.remove('dragover');
+                });
+
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropzone.classList.remove('dragover');
+                    if (e.dataTransfer.files.length > 0) {
+                        input.files = e.dataTransfer.files;
+                        atualizarTexto(input, label);
+                    }
+                });
+
+                input.addEventListener('change', () => {
+                    atualizarTexto(input, label);
+                });
+            });
+
+            function atualizarTexto(input, label) {
+                if (input.files.length > 0) {
+                    label.innerHTML = `✅ <strong>${input.files[0].name}</strong>`;
+                } else {
+                    label.innerHTML = `Arraste seu arquivo aqui ou <span>clique para enviar</span>`;
+                }
+            }
         });
-
-        zone.addEventListener('dragleave', () => {
-          zone.classList.remove('dragover');
-        });
-
-        zone.addEventListener('drop', (e) => {
-          e.preventDefault();
-          zone.classList.remove('dragover');
-          if (e.dataTransfer.files.length > 0) {
-            input.files = e.dataTransfer.files;
-            updateState();
-          }
-        });
-
-        input.addEventListener('change', updateState);
-
-        function updateState() {
-          if (input.files.length > 0) {
-            zone.classList.add('has-file');
-            label.innerHTML = `✅ <strong>${input.files[0].name}</strong>`;
-          } else {
-            zone.classList.remove('has-file');
-            label.innerHTML = `Arraste seu arquivo aqui ou <span>clique para enviar</span>`;
-          }
-        }
-      }
-
-      // Ativação dos DropZones
-      setupDropZone('zone-extrato', 'file-extrato', 'label-extrato');
-      setupDropZone('zone-razao-bancaria', 'file-razao-bancaria', 'label-razao-bancaria');
-      setupDropZone('zone-razao-fornecedores', 'file-razao-fornecedores', 'label-razao-fornecedores');
-
-      // Alternância de Abas com desativação/ativação de inputs para o submit
-      const btnBancaria = document.getElementById('btn-tab-bancaria');
-      const btnFornecedores = document.getElementById('btn-tab-fornecedores');
-      const tabBancaria = document.getElementById('tab-bancaria');
-      const tabFornecedores = document.getElementById('tab-fornecedores');
-
-      const fileExtrato = document.getElementById('file-extrato');
-      const fileRazaoBancaria = document.getElementById('file-razao-bancaria');
-      const fileRazaoFornecedores = document.getElementById('file-razao-fornecedores');
-
-      function clearInput(input) {
-        input.value = '';
-        input.dispatchEvent(new Event('change'));
-      }
-
-      function setMode(modo) {
-        if (modo === 'bancaria') {
-          btnBancaria.classList.add('active');
-          btnFornecedores.classList.remove('active');
-          tabBancaria.classList.add('active');
-          tabFornecedores.classList.remove('active');
-
-          fileExtrato.disabled = false;
-          fileRazaoBancaria.disabled = false;
-          fileRazaoFornecedores.disabled = true;
-
-          clearInput(fileRazaoFornecedores);
-        } else {
-          btnFornecedores.classList.add('active');
-          btnBancaria.classList.remove('active');
-          tabFornecedores.classList.add('active');
-          tabBancaria.classList.remove('active');
-
-          fileExtrato.disabled = true;
-          fileRazaoBancaria.disabled = true;
-          fileRazaoFornecedores.disabled = false;
-
-          clearInput(fileExtrato);
-          clearInput(fileRazaoBancaria);
-        }
-      }
-
-      btnBancaria.addEventListener('click', (e) => {
-        e.preventDefault();
-        setMode('bancaria');
-      });
-
-      btnFornecedores.addEventListener('click', (e) => {
-        e.preventDefault();
-        setMode('fornecedores');
-      });
-
-      // Inicializa no modo Bancária
-      setMode('bancaria');
-    });
-  </script>
+    </script>
+    <script src="script.js"></script>
 </body>
 </html>
