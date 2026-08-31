@@ -21,6 +21,21 @@
             transform: scale(1.02);
         }
 
+        /* Estilização para alternância das abas */
+        .modulo.hidden {
+            display: none !important;
+        }
+
+        .nav-btn {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn.active {
+            font-weight: bold;
+            border-bottom: 2px solid #2563eb;
+        }
+
         .dropzone {
             transition: all 0.25s ease;
             cursor: pointer;
@@ -68,6 +83,20 @@
             filter: brightness(1.08);
         }
 
+        /* Estilização e alinhamento das tabelas */
+        table {
+            width: 100%;
+            table-layout: fixed; /* Força o cumprimento das larguras das colunas */
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
         tbody tr {
             transition: background-color 0.15s ease;
         }
@@ -81,12 +110,13 @@
     <header>
         <h1 onclick="window.location.reload();" title="Clique para recarregar a página">ClickConcilia</h1>
         <nav>
-            <button class="nav-btn active" onclick="mudarAba('bancaria')">🏦 Conciliação Bancária</button>
-            <button class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
+            <button id="btn-aba-bancaria" class="nav-btn active" onclick="mudarAba('bancaria')">🏦 Conciliação Bancária</button>
+            <button id="btn-aba-fornecedores" class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
         </nav>
     </header>
 
     <main>
+        <!-- MÓDULO: BANCÁRIA -->
         <section id="mod-bancaria" class="modulo active">
             <h2>Conciliação Bancária</h2>
             <div class="upload-container">
@@ -134,10 +164,10 @@
                     <table id="tblExtrato">
                         <thead>
                             <tr>
-                                <th>Data</th>
-                                <th>Descrição</th>
-                                <th>Valor</th>
-                                <th>Status</th>
+                                <th style="width: 15%; text-align: center;">Data</th>
+                                <th style="width: 50%; text-align: left;">Descrição</th>
+                                <th style="width: 18%; text-align: right;">Valor</th>
+                                <th style="width: 17%; text-align: center;">Status</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -146,6 +176,7 @@
             </div>
         </section>
 
+        <!-- MÓDULO: FORNECEDORES -->
         <section id="mod-fornecedores" class="modulo hidden">
             <h2>Conciliação de Fornecedores</h2>
             <div class="upload-container">
@@ -191,15 +222,15 @@
                     <table id="tblFornecedores">
                         <thead>
                             <tr>
-                                <th style="width: 40px; text-align: center;"></th>
-                                <th>Data</th>
-                                <th>Conta Contábil</th>
-                                <th>Descrição do Lançamento</th>
-                                <th>Nº da NF</th>
-                                <th>Total Pagamentos (Débitos)</th>
-                                <th>Total Compras (Créditos)</th>
-                                <th>Saldo Remanescente</th>
-                                <th>Status</th>
+                                <th style="width: 4%; text-align: center;"></th>
+                                <th style="width: 10%; text-align: center;">Data</th>
+                                <th style="width: 11%; text-align: center;">Conta Contábil</th>
+                                <th style="width: 27%; text-align: left;">Descrição do Lançamento</th>
+                                <th style="width: 10%; text-align: center;">Nº da NF</th>
+                                <th style="width: 11%; text-align: right;">Total Pagamentos</th>
+                                <th style="width: 11%; text-align: right;">Total Compras</th>
+                                <th style="width: 11%; text-align: right;">Saldo</th>
+                                <th style="width: 11%; text-align: center;">Status</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -210,6 +241,32 @@
     </main>
 
     <script>
+        // Função para alternar as abas da interface
+        function mudarAba(aba) {
+            const modBancaria = document.getElementById('mod-bancaria');
+            const modFornecedores = document.getElementById('mod-fornecedores');
+            const btnBancaria = document.getElementById('btn-aba-bancaria');
+            const btnFornecedores = document.getElementById('btn-aba-fornecedores');
+
+            if (aba === 'bancaria') {
+                modBancaria.classList.remove('hidden');
+                modBancaria.classList.add('active');
+                modFornecedores.classList.add('hidden');
+                modFornecedores.classList.remove('active');
+
+                btnBancaria.classList.add('active');
+                btnFornecedores.classList.remove('active');
+            } else if (aba === 'fornecedores') {
+                modFornecedores.classList.remove('hidden');
+                modFornecedores.classList.add('active');
+                modBancaria.classList.add('hidden');
+                modBancaria.classList.remove('active');
+
+                btnFornecedores.classList.add('active');
+                btnBancaria.classList.remove('active');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const inputs = ['extratoFile', 'razaoFile', 'fornecedorFile'];
 
