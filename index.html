@@ -9,7 +9,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
     <style>
-        /* Ajustes visuais para aumentar a interatividade ao passar o mouse */
+        /* =========================================================
+           AJUSTES E EFEITOS DE INTERAÇÃO (HOVER / ACTIVE)
+           ========================================================= */
+
+        /* Título do Cabeçalho */
         header h1 {
             cursor: pointer;
             transition: opacity 0.2s ease, transform 0.2s ease;
@@ -21,29 +25,42 @@
             transform: scale(1.02);
         }
 
-        /* Estilização para alternância das abas */
+        /* Estilização para alternância das abas de navegação */
         .modulo.hidden {
             display: none !important;
         }
 
         .nav-btn {
             cursor: pointer;
-            transition: all 0.2s ease;
+            padding: 8px 16px;
+            border-radius: 6px 6px 0 0;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-btn:hover {
+            background-color: rgba(37, 99, 235, 0.1);
+            color: #2563eb;
+            transform: translateY(-2px);
         }
 
         .nav-btn.active {
             font-weight: bold;
-            border-bottom: 2px solid #2563eb;
+            border-bottom: 3px solid #2563eb;
+            background-color: rgba(37, 99, 235, 0.15);
         }
 
+        /* Dropzones de Upload */
         .dropzone {
-            transition: all 0.25s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
         }
 
         .dropzone:hover, .dropzone.dragover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
             border-color: #2563eb;
         }
 
@@ -56,52 +73,73 @@
             font-size: 13px;
             font-weight: 600;
             border-radius: 6px;
-            transition: background-color 0.2s ease, transform 0.15s ease;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
             pointer-events: none; /* Deixa o clique passar para a dropzone */
         }
 
         .dropzone:hover .btn-upload-click {
             background-color: #1d4ed8;
-            transform: scale(1.03);
+            transform: scale(1.04);
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
         }
 
+        /* Cards de Filtro e Resumo */
         .card {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .card:hover {
+        .card-interativo {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        .card-interativo:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            filter: brightness(1.03);
+        }
+
+        .card-interativo:active {
+            transform: translateY(-1px) scale(0.99);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Botões Globais */
+        .btn-primary, .btn-secondary, .btn-exportar {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover, .btn-exportar:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            filter: brightness(1.1);
         }
 
-        .btn-primary, .btn-secondary {
-            transition: all 0.2s ease;
+        .btn-primary:active, .btn-secondary:active, .btn-exportar:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-primary:hover, .btn-secondary:hover {
-            transform: translateY(-1px);
-            filter: brightness(1.08);
-        }
-
-        /* Container responsivo com rolagem horizontal se necessário */
+        /* Tabelas e Linhas */
         .tabela-container {
             width: 100%;
             overflow-x: auto;
         }
 
-        /* Estilização e alinhamento das tabelas */
         table {
             width: 100%;
-            min-width: 950px; /* Garante largura mínima para leitura confortável */
+            min-width: 950px;
             border-collapse: collapse;
         }
 
         th, td {
             padding: 10px 12px;
-            word-wrap: break-word; /* Permite a quebra de linha em descrições longas */
+            word-wrap: break-word;
         }
 
-        /* Alinhamento específico para colunas de valores e número da NF */
+        /* Alinhamento de Colunas */
         .col-valor-header {
             text-align: center !important;
         }
@@ -111,35 +149,39 @@
         }
 
         tbody tr {
-            transition: background-color 0.15s ease;
+            transition: background-color 0.15s ease, transform 0.1s ease;
         }
 
         tbody tr:hover {
-            background-color: rgba(37, 99, 235, 0.04);
+            background-color: rgba(37, 99, 235, 0.05);
         }
 
-        /* Alinhamento à direita para as colunas de valores numéricos de Fornecedores */
         #tblFornecedores td:nth-child(6),
         #tblFornecedores td:nth-child(7),
         #tblFornecedores td:nth-child(8) {
             text-align: right !important;
         }
 
-        /* Centralização perfeita da coluna de Status e ajuste de quebra */
         #tblFornecedores td:nth-child(9),
         #tblFornecedores th:last-child {
             text-align: center !important;
         }
 
-        /* Estilização para impedir a quebra estranha da tag/badge de status */
+        /* Formatadores de Status Badges */
         .status-badge, .badge, td span {
-            white-space: nowrap !important; /* Impede a quebra de linha do texto dentro da tag */
+            white-space: nowrap !important;
             display: inline-flex !important;
             align-items: center;
             justify-content: center;
             gap: 4px;
             padding: 4px 8px;
             box-sizing: border-box;
+            transition: transform 0.15s ease;
+        }
+
+        tbody tr:hover .status-badge,
+        tbody tr:hover .badge {
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -147,8 +189,8 @@
     <header>
         <h1 onclick="window.location.reload();" title="Clique para recarregar a página">ClickConcilia</h1>
         <nav>
-            <button id="btn-aba-bancaria" class="nav-btn active" onclick="mudarAba('bancaria')">🏦 Conciliação Bancária</button>
-            <button id="btn-aba-fornecedores" class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
+            <button id="btn-aba-bancaria" class="nav-btn active" onclick="mudarAba('bancaria')" title="Alternar para Conciliação Bancária">🏦 Conciliação Bancária</button>
+            <button id="btn-aba-fornecedores" class="nav-btn" onclick="mudarAba('fornecedores')" title="Alternar para Conciliação de Fornecedores">🏬 Conciliação de Fornecedores</button>
         </nav>
     </header>
 
@@ -157,14 +199,14 @@
         <section id="mod-bancaria" class="modulo active">
             <h2>Conciliação Bancária</h2>
             <div class="upload-container">
-                <div class="dropzone" onclick="document.getElementById('extratoFile').click()">
+                <div class="dropzone" onclick="document.getElementById('extratoFile').click()" title="Clique ou arraste o arquivo do Extrato">
                     <h3>Extrato</h3>
                     <p id="label-extratoFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
                     <p class="formatos" style="margin-top: 8px;">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
                     <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf" style="display: none;">
                 </div>
-                <div class="dropzone" onclick="document.getElementById('razaoFile').click()">
+                <div class="dropzone" onclick="document.getElementById('razaoFile').click()" title="Clique ou arraste o arquivo do Razão">
                     <h3>Razão</h3>
                     <p id="label-razaoFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
@@ -217,7 +259,7 @@
         <section id="mod-fornecedores" class="modulo hidden">
             <h2>Conciliação de Fornecedores</h2>
             <div class="upload-container">
-                <div class="dropzone unica" onclick="document.getElementById('fornecedorFile').click()">
+                <div class="dropzone unica" onclick="document.getElementById('fornecedorFile').click()" title="Clique ou arraste o arquivo de Razão de Fornecedores">
                     <h3>Razão de Fornecedores</h3>
                     <p id="label-fornecedorFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
@@ -234,15 +276,15 @@
 
             <div id="resultadoFornecedores" class="resultado-container hidden">
                 <div class="cards-resumo">
-                    <div class="card azul" id="cardFiltroTodos" onclick="filtrarTabelaFornecedores('todos')" style="cursor: pointer;">
+                    <div class="card azul card-interativo" id="cardFiltroTodos" onclick="filtrarTabelaFornecedores('todos')" title="Clique para filtrar todos os lançamentos">
                         <h4 id="qtdTotalFornecedores">0</h4>
                         <p>Total de Lançamentos</p>
                     </div>
-                    <div class="card amarelo" id="cardFiltroAberto" onclick="filtrarTabelaFornecedores('aberto')" style="cursor: pointer;">
+                    <div class="card amarelo card-interativo" id="cardFiltroAberto" onclick="filtrarTabelaFornecedores('aberto')" title="Clique para filtrar apenas títulos em aberto">
                         <h4 id="qtdComSaldo">0</h4>
                         <p>NFs / Títulos em Aberto</p>
                     </div>
-                    <div class="card verde" id="cardFiltroQuitados" onclick="filtrarTabelaFornecedores('quitados')" style="cursor: pointer;">
+                    <div class="card verde card-interativo" id="cardFiltroQuitados" onclick="filtrarTabelaFornecedores('quitados')" title="Clique para filtrar apenas títulos quitados">
                         <h4 id="qtdQuitados">0</h4>
                         <p>Títulos Quitados</p>
                     </div>
@@ -251,7 +293,7 @@
                 <div class="tabela-container" style="margin-top: 2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
                         <h3 id="tituloTabelaFornecedores">📋 Resumo de Títulos e Saldos por Fornecedor (Todos)</h3>
-                        <button class="btn-secondary" onclick="exportarRelatorioFornecedoresXLSX()" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        <button class="btn-secondary btn-exportar" onclick="exportarRelatorioFornecedoresXLSX()" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold;" title="Baixar relatório formatado em Excel">
                             📊 Exportar Filtro em Excel (.xlsx)
                         </button>
                     </div>
