@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClickConcilia - Ferramenta de Conciliação | ContabilTech</title>
+  <title>ClickConcilia - Ferramenta de Conciliação</title>
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <!-- Favicon / Ícone da Aba -->
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 
   <!-- Fonte Moderna (Plus Jakarta Sans) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -131,6 +132,10 @@
       margin-bottom: 24px;
     }
 
+    .upload-container.single-card {
+      grid-template-columns: 1fr;
+    }
+
     @media (max-width: 768px) {
       .upload-container {
         grid-template-columns: 1fr;
@@ -238,8 +243,8 @@
     <section class="card">
       <h1 class="card-title" id="main-title">Conciliação Bancária</h1>
 
-      <div class="upload-container">
-        <!-- Caixa 1: Extrato / Notas -->
+      <div class="upload-container" id="upload-grid">
+        <!-- Caixa 1: Extrato (Visível apenas na Conciliação Bancária) -->
         <div class="drop-zone" id="zone-extrato">
           <div class="drop-icon" id="icon-extrato">📄</div>
           <h3 id="title-extrato">Extrato</h3>
@@ -266,7 +271,6 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Função para configurar áreas de Drag & Drop
       function setupDropZone(zoneId, inputId, labelId) {
         const zone = document.getElementById(zoneId);
         const input = document.getElementById(inputId);
@@ -308,14 +312,12 @@
       setupDropZone('zone-extrato', 'file-extrato', 'label-extrato');
       setupDropZone('zone-razao', 'file-razao', 'label-razao');
 
-      // Troca das Abas (Bancária vs Fornecedores)
+      // Troca das Abas
       const btnBancaria = document.getElementById('btn-tab-bancaria');
       const btnFornecedores = document.getElementById('btn-tab-fornecedores');
       const mainTitle = document.getElementById('main-title');
-      const titleExtrato = document.getElementById('title-extrato');
-      const iconExtrato = document.getElementById('icon-extrato');
-      const formatsExtrato = document.getElementById('formats-extrato');
-      const inputExtrato = document.getElementById('file-extrato');
+      const zoneExtrato = document.getElementById('zone-extrato');
+      const uploadGrid = document.getElementById('upload-grid');
 
       let modoAtual = 'bancaria';
 
@@ -326,10 +328,8 @@
         btnFornecedores.classList.remove('active');
 
         mainTitle.textContent = 'Conciliação Bancária';
-        titleExtrato.textContent = 'Extrato';
-        iconExtrato.textContent = '📄';
-        formatsExtrato.textContent = 'Formatos: .OFX, .CSV, .XLSX, .PDF';
-        inputExtrato.accept = ".ofx,.csv,.xlsx,.pdf";
+        zoneExtrato.style.display = 'block';
+        uploadGrid.classList.remove('single-card');
       });
 
       btnFornecedores.addEventListener('click', (e) => {
@@ -339,23 +339,28 @@
         btnBancaria.classList.remove('active');
 
         mainTitle.textContent = 'Conciliação de Fornecedores';
-        titleExtrato.textContent = 'Notas / Contas a Pagar';
-        iconExtrato.textContent = '🧾';
-        formatsExtrato.textContent = 'Formatos: .CSV, .XLSX, .PDF, .XML';
-        inputExtrato.accept = ".csv,.xlsx,.pdf,.xml";
+        zoneExtrato.style.display = 'none';
+        uploadGrid.classList.add('single-card');
       });
 
-      // Validação do Botão de Ação
+      // Processar Arquivos
       document.getElementById('btn-processar').addEventListener('click', (e) => {
         e.preventDefault();
-        const extrato = inputExtrato.files[0];
+        const extrato = document.getElementById('file-extrato').files[0];
         const razao = document.getElementById('file-razao').files[0];
 
-        if (!extrato || !razao) {
-          alert('Por favor, selecione ambos os arquivos antes de processar.');
+        if (modoAtual === 'bancaria') {
+          if (!extrato || !razao) {
+            alert('Por favor, selecione ambos os arquivos (Extrato e Razão) antes de processar.');
+          } else {
+            alert(`Processando Conciliação Bancária:\n\n- Extrato: ${extrato.name}\n- Razão: ${razao.name}`);
+          }
         } else {
-          const tipo = modoAtual === 'bancaria' ? 'Bancária' : 'de Fornecedores';
-          alert(`Processando Conciliação ${tipo}:\n\n- Arquivo 1: ${extrato.name}\n- Arquivo 2: ${razao.name}`);
+          if (!razao) {
+            alert('Por favor, selecione o arquivo do Razão antes de processar.');
+          } else {
+            alert(`Processando Conciliação de Fornecedores:\n\n- Razão: ${razao.name}`);
+          }
         }
       });
     });
