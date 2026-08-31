@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ClickConcilia - Ferramenta de Conciliação</title>
 
-  <!-- Favicon / Ícones para Desktop, iPhone e Android -->
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
-  <meta name="theme-color" content="#121927">
+  <!-- Favicon / Ícone da Aba -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
 
   <!-- Fonte Moderna (Plus Jakarta Sans) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -124,6 +122,15 @@
       font-weight: 700;
       margin-bottom: 24px;
       color: var(--text-main);
+    }
+
+    /* Tab Content Controls */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
     }
 
     /* Grid de Uploads */
@@ -243,36 +250,56 @@
   <!-- Conteúdo Principal -->
   <main class="container">
     <section class="card">
-      <h1 class="card-title" id="main-title">Conciliação Bancária</h1>
 
-      <div class="upload-container" id="upload-grid">
-        <!-- Caixa 1: Extrato (Visível apenas na Conciliação Bancária) -->
-        <div class="drop-zone" id="zone-extrato">
-          <div class="drop-icon" id="icon-extrato">📄</div>
-          <h3 id="title-extrato">Extrato</h3>
-          <p class="drop-instructions" id="label-extrato">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-          <p class="file-formats" id="formats-extrato">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
-          <input type="file" id="file-extrato" accept=".ofx,.csv,.xlsx,.pdf">
+      <!-- ABA 1: CONCILIAÇÃO BANCÁRIA -->
+      <div id="tab-bancaria" class="tab-content active">
+        <h1 class="card-title">Conciliação Bancária</h1>
+        <div class="upload-container">
+          <!-- Extrato Bancário -->
+          <div class="drop-zone" id="zone-extrato">
+            <div class="drop-icon">📄</div>
+            <h3>Extrato</h3>
+            <p class="drop-instructions" id="label-extrato">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
+            <p class="file-formats">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
+            <input type="file" id="file-extrato" accept=".ofx,.csv,.xlsx,.pdf">
+          </div>
+
+          <!-- Razão Bancário -->
+          <div class="drop-zone" id="zone-razao-bancaria">
+            <div class="drop-icon">📊</div>
+            <h3>Razão</h3>
+            <p class="drop-instructions" id="label-razao-bancaria">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
+            <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
+            <input type="file" id="file-razao-bancaria" accept=".csv,.xlsx,.pdf">
+          </div>
         </div>
+      </div>
 
-        <!-- Caixa 2: Razão -->
-        <div class="drop-zone" id="zone-razao">
-          <div class="drop-icon">📊</div>
-          <h3 id="title-razao">Razão</h3>
-          <p class="drop-instructions" id="label-razao">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
-          <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
-          <input type="file" id="file-razao" accept=".csv,.xlsx,.pdf">
+      <!-- ABA 2: CONCILIAÇÃO DE FORNECEDORES -->
+      <div id="tab-fornecedores" class="tab-content">
+        <h1 class="card-title">Conciliação de Fornecedores</h1>
+        <div class="upload-container single-card">
+          <!-- Razão Fornecedores -->
+          <div class="drop-zone" id="zone-razao-fornecedores">
+            <div class="drop-icon">📊</div>
+            <h3>Razão</h3>
+            <p class="drop-instructions" id="label-razao-fornecedores">Arraste seu arquivo aqui ou <span>clique para enviar</span></p>
+            <p class="file-formats">Formatos: .CSV, .XLSX, .PDF</p>
+            <input type="file" id="file-razao-fornecedores" accept=".csv,.xlsx,.pdf">
+          </div>
         </div>
       </div>
 
       <button type="button" class="btn-submit" id="btn-processar">
         <span>⚙️</span> Processar Conciliação
       </button>
+
     </section>
   </main>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // Configuração genérica de DropZones
       function setupDropZone(zoneId, inputId, labelId) {
         const zone = document.getElementById(zoneId);
         const input = document.getElementById(inputId);
@@ -311,27 +338,37 @@
         }
       }
 
+      // Ativação dos DropZones individuais
       setupDropZone('zone-extrato', 'file-extrato', 'label-extrato');
-      setupDropZone('zone-razao', 'file-razao', 'label-razao');
+      setupDropZone('zone-razao-bancaria', 'file-razao-bancaria', 'label-razao-bancaria');
+      setupDropZone('zone-razao-fornecedores', 'file-razao-fornecedores', 'label-razao-fornecedores');
 
-      // Troca das Abas
+      // Troca de Abas
       const btnBancaria = document.getElementById('btn-tab-bancaria');
       const btnFornecedores = document.getElementById('btn-tab-fornecedores');
-      const mainTitle = document.getElementById('main-title');
-      const zoneExtrato = document.getElementById('zone-extrato');
-      const uploadGrid = document.getElementById('upload-grid');
+      const tabBancaria = document.getElementById('tab-bancaria');
+      const tabFornecedores = document.getElementById('tab-fornecedores');
 
       let modoAtual = 'bancaria';
+
+      function resetInputs() {
+        ['file-extrato', 'file-razao-bancaria', 'file-razao-fornecedores'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.value = '';
+            el.dispatchEvent(new Event('change'));
+          }
+        });
+      }
 
       btnBancaria.addEventListener('click', (e) => {
         e.preventDefault();
         modoAtual = 'bancaria';
         btnBancaria.classList.add('active');
         btnFornecedores.classList.remove('active');
-
-        mainTitle.textContent = 'Conciliação Bancária';
-        zoneExtrato.style.display = 'block';
-        uploadGrid.classList.remove('single-card');
+        tabBancaria.classList.add('active');
+        tabFornecedores.classList.remove('active');
+        resetInputs();
       });
 
       btnFornecedores.addEventListener('click', (e) => {
@@ -339,29 +376,31 @@
         modoAtual = 'fornecedores';
         btnFornecedores.classList.add('active');
         btnBancaria.classList.remove('active');
-
-        mainTitle.textContent = 'Conciliação de Fornecedores';
-        zoneExtrato.style.display = 'none';
-        uploadGrid.classList.add('single-card');
+        tabFornecedores.classList.add('active');
+        tabBancaria.classList.remove('active');
+        resetInputs();
       });
 
-      // Processar Arquivos
+      // Botão de Processar
       document.getElementById('btn-processar').addEventListener('click', (e) => {
         e.preventDefault();
-        const extrato = document.getElementById('file-extrato').files[0];
-        const razao = document.getElementById('file-razao').files[0];
 
         if (modoAtual === 'bancaria') {
+          const extrato = document.getElementById('file-extrato').files[0];
+          const razao = document.getElementById('file-razao-bancaria').files[0];
+
           if (!extrato || !razao) {
             alert('Por favor, selecione ambos os arquivos (Extrato e Razão) antes de processar.');
           } else {
             alert(`Processando Conciliação Bancária:\n\n- Extrato: ${extrato.name}\n- Razão: ${razao.name}`);
           }
         } else {
-          if (!razao) {
+          const razaoFornecedores = document.getElementById('file-razao-fornecedores').files[0];
+
+          if (!razaoFornecedores) {
             alert('Por favor, selecione o arquivo do Razão antes de processar.');
           } else {
-            alert(`Processando Conciliação de Fornecedores:\n\n- Razão: ${razao.name}`);
+            alert(`Processando Conciliação de Fornecedores:\n\n- Razão: ${razaoFornecedores.name}`);
           }
         }
       });
