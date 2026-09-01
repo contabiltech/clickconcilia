@@ -62,10 +62,9 @@ function lerArquivoPlanilha(file, origem) {
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const primeiraAba = workbook.SheetNames[0];
-                const aba = workbook.Sheets[primeiraAba];
                 
-                const json = XLSX.utils.sheet_to_json(aba, { header: 1, raw: false });
+                // ATUALIZADO: Utiliza a função flexível para preencher células mescladas e limpar quebras
+                const json = window.lerPlanilhaFlexivel(workbook);
                 resolve(normalizarDadosPlanilha(json, origem));
             } catch (err) {
                 reject(err);
@@ -82,24 +81,34 @@ function normalizarDadosPlanilha(linhas, origem) {
 
     let idxData = 0, idxDesc = 1, idxValor = 2, idxConta = -1;
 
-    linhas = linhas.map(linha => {
-        if (linha.length === 1 && typeof linha[0] === 'string' && linha[0].includes(';')) {
-            return linha[0].split(';');
+    // Se o retorno veio como objetos (formato gerado pelo sheet_to_json limpo), extraímos as chaves da primeira linha
+    if (typeof linhas[0] === 'object' && !Array.isArray(linhas[0])) {
+        const chaves = Object.keys(linhas[0]);
+        
+        chaves.forEach((chave, idx) => {
+            const cLower = chave.toLowerCase();
+            if (cLower.includes('data') || cLower.includes('date')) idxData = idx;
+            if (cLower.includes('desc') || cLower.includes('historico') || cLower.includes('histó')) idxDesc = idx;
+            if (cLower.includes('valor') || cLower.includes('monto') || cLower.includes('quant')) idxValor = idx;
+            if (cLower.includes('conta') || cLower.includes('cto') || cLower.includes('codigo') || cLower.includes('cód')) idxConta = idx;
+        });
+
+        // Converte o array de objetos de volta para matriz de valores alinhados com as colunas detectadas
+        linhas = linhas.map(obj => chaves.map(k => obj[k]));
+    } else {
+        // Fallback para detecção por cabeçalho em matriz padrão
+        for (let i = 0; i < Math.min(5, linhas.length); i++) {
+            const linhaHeader = linhas[i].map(c => String(c || '').toLowerCase().trim());
+            const dataFind = linhaHeader.findIndex(c => c.includes('data') || c.includes('date'));
+            const descFind = linhaHeader.findIndex(c => c.includes('desc') || c.includes('historico') || c.includes('histó'));
+            const valorFind = linhaHeader.findIndex(c => c.includes('valor') || c.includes('monto') || c.includes('quant'));
+            const contaFind = linhaHeader.findIndex(c => c.includes('conta') || c.includes('cto') || c.includes('codigo') || c.includes('cód'));
+
+            if (dataFind !== -1) idxData = dataFind;
+            if (descFind !== -1) idxDesc = descFind;
+            if (valorFind !== -1) idxValor = valorFind;
+            if (contaFind !== -1) idxConta = contaFind;
         }
-        return linha;
-    });
-
-    for (let i = 0; i < Math.min(5, linhas.length); i++) {
-        const linhaHeader = linhas[i].map(c => String(c || '').toLowerCase().trim());
-        const dataFind = linhaHeader.findIndex(c => c.includes('data') || c.includes('date'));
-        const descFind = linhaHeader.findIndex(c => c.includes('desc') || c.includes('historico') || c.includes('histó'));
-        const valorFind = linhaHeader.findIndex(c => c.includes('valor') || c.includes('monto') || c.includes('quant'));
-        const contaFind = linhaHeader.findIndex(c => c.includes('conta') || c.includes('cto') || c.includes('codigo') || c.includes('cód'));
-
-        if (dataFind !== -1) idxData = dataFind;
-        if (descFind !== -1) idxDesc = descFind;
-        if (valorFind !== -1) idxValor = valorFind;
-        if (contaFind !== -1) idxConta = contaFind;
     }
 
     for (let i = 0; i < linhas.length; i++) {
@@ -113,15 +122,11 @@ function normalizarDadosPlanilha(linhas, origem) {
         let dataFormatada = formatarDataBR(strData);
         let descricao = String(linha[idxDesc] || 'Sem histórico').trim();
         let contaContabil = idxConta !== -1 && linha[idxConta] ? String(linha[idxConta]).trim() : 'N/A';
-        let valorBruto = String(linha[idxValor] || '0').replace('R$', '').replace(/\s/g, '').trim();
-
-        if (valorBruto.includes(',') && valorBruto.includes('.')) {
-            valorBruto = valorBruto.replace(/\./g, '').replace(',', '.');
-        } else if (valorBruto.includes(',')) {
-            valorBruto = valorBruto.replace(',', '.');
-        }
-
-        let valor = parseFloat(valorBruto);
+        
+        let valorBruto = linha[idxValor];
+        
+        // ATUALIZADO: Usa o conversor universal para lidar com sufixos 'D' e 'C' e sinais monetários
+        let valor = window.parseValorUniversal(valorBruto);
 
         if (!isNaN(valor) && valor !== 0) {
             listaNormalizada.push({
@@ -349,7 +354,6 @@ function renderizarTabelaFornecedores(idTabela, lista) {
         const formatBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const temSaldoAberto = Math.abs(item.saldo) > 0.01;
         
-        // A expansão só acontece se houver MAIS DE 1 PAGAMENTO para a mesma NF
         const temMultiplosPagamentos = item.listaPagamentos.length > 1;
 
         const badgeStatus = temSaldoAberto 
@@ -360,7 +364,6 @@ function renderizarTabelaFornecedores(idTabela, lista) {
             ? `<button onclick="alternarAgrupamento(${index})" id="btn-toggle-${index}" title="Ver múltiplos pagamentos (${item.listaPagamentos.length})" style="background: #e2e8f0; border: 1px solid #cbd5e1; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-weight: bold; line-height: 1;">+</button>`
             : `<span style="color: #cbd5e1;">-</span>`;
 
-        // Linha Principal
         const trPrincipal = document.createElement('tr');
         if (temSaldoAberto) trPrincipal.style.backgroundColor = '#fffbe2';
 
@@ -377,7 +380,6 @@ function renderizarTabelaFornecedores(idTabela, lista) {
         `;
         tbody.appendChild(trPrincipal);
 
-        // Linha do Agrupamento (Apenas se houver múltiplos pagamentos)
         if (temMultiplosPagamentos) {
             const trDetalhes = document.createElement('tr');
             trDetalhes.id = `detalhes-${index}`;
