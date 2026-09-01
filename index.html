@@ -204,15 +204,15 @@
                     <h3>Extrato</h3>
                     <p id="label-extratoFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Extrato">
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .OFX, .CSV, .XLS, .XLSX, .PDF</p>
+                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xls,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Extrato">
                 </div>
                 <div class="dropzone" onclick="document.getElementById('razaoFile').click()" title="Clique ou arraste o arquivo do Razão">
                     <h3>Razão</h3>
                     <p id="label-razaoFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Razão">
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLS, .XLSX, .PDF</p>
+                    <input type="file" id="razaoFile" accept=".csv,.xls,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Razão">
                 </div>
             </div>
             
@@ -264,8 +264,10 @@
                     <h3>Razão de Fornecedores</h3>
                     <p id="label-fornecedorFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Razão de Fornecedores">
+                    <!-- CORRIGIDO: Adicionado .XLS aqui -->
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLS, .XLSX, .PDF</p>
+                    <!-- CORRIGIDO: Adicionado .xls no accept do input -->
+                    <input type="file" id="fornecedorFile" accept=".csv,.xls,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Razão de Fornecedores">
                 </div>
             </div>
             <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos de NFs</button>
