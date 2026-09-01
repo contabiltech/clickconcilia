@@ -11,7 +11,6 @@ window.lerPlanilhaFlexivel = function(workbook) {
     const worksheet = workbook.Sheets[primeiraAba];
     if (!worksheet) return [];
 
-    // Tratamento seguro de células mescladas
     if (worksheet['!merges'] && Array.isArray(worksheet['!merges'])) {
         worksheet['!merges'].forEach(merge => {
             if (!merge || !merge.s || !merge.e) return;
@@ -249,7 +248,7 @@ window.processarConciliacaoBancaria = async function() {
 };
 
 // =========================================================================
-// PROCESSAMENTO DE FORNECEDORES (COM POPULAÇÃO DA TABELA VISUAL)
+// PROCESSAMENTO DE FORNECEDORES (COM EXPORTAÇÃO GLOBAL DE FUNÇÕES)
 // =========================================================================
 let dadosFornecedoresGlobais = [];
 
@@ -269,13 +268,11 @@ window.processarFornecedores = async function() {
     try {
         dadosFornecedoresGlobais = await lerArquivoGenerico(inputArquivo.files[0]);
 
-        // Processa os dados para calcular pagamentos, compras e saldos por lançamento
         let qtdTotal = dadosFornecedoresGlobais.length;
         let qtdAberto = 0;
         let qtdQuitados = 0;
 
         dadosFornecedoresGlobais.forEach(item => {
-            // Lógica de saldo: se valor > 0 é compra/título, se < 0 é pagamento
             item.totalCompras = item.Valor > 0 ? item.Valor : 0;
             item.totalPagamentos = item.Valor < 0 ? Math.abs(item.Valor) : 0;
             item.saldo = item.totalCompras - item.totalPagamentos;
@@ -293,7 +290,7 @@ window.processarFornecedores = async function() {
         document.getElementById('qtdComSaldo').innerText = qtdAberto;
         document.getElementById('qtdQuitados').innerText = qtdQuitados;
 
-        renderizarTabelaFornecedores(dadosFornecedoresGlobais, 'Resumo de Títulos e Saldos por Fornecedor (Todos)');
+        window.renderizarTabelaFornecedores(dadosFornecedoresGlobais, 'Resumo de Títulos e Saldos por Fornecedor (Todos)');
 
         if (resultadoContainer) resultadoContainer.classList.remove('hidden');
     } catch (erro) {
@@ -304,14 +301,15 @@ window.processarFornecedores = async function() {
     }
 };
 
-function renderizarTabelaFornecedores(dados, tituloMensagem) {
+window.renderizarTabelaFornecedores = function(dados, tituloMensagem) {
     const tbody = document.querySelector('#tblFornecedores tbody');
     const tituloHeader = document.getElementById('tituloTabelaFornecedores');
     if (tituloHeader) tituloHeader.innerText = `📋 ${tituloMensagem}`;
     
+    if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (dados.length === 0) {
+    if (!dados || dados.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">Nenhum lançamento encontrado para este filtro.</td></tr>`;
         return;
     }
@@ -335,7 +333,7 @@ function renderizarTabelaFornecedores(dados, tituloMensagem) {
         `;
         tbody.appendChild(tr);
     });
-}
+};
 
 window.filtrarTabelaFornecedores = function(filtro) {
     if (!dadosFornecedoresGlobais || dadosFornecedoresGlobais.length === 0) return;
@@ -354,7 +352,7 @@ window.filtrarTabelaFornecedores = function(filtro) {
         titulo = 'Títulos Quitados';
     }
 
-    renderizarTabelaFornecedores(dadosFiltrados, titulo);
+    window.renderizarTabelaFornecedores(dadosFiltrados, titulo);
 };
 
 window.exportarRelatorioFornecedoresXLSX = function() {
@@ -363,7 +361,6 @@ window.exportarRelatorioFornecedoresXLSX = function() {
         return;
     }
     
-    // Exportação rápida via SheetJS
     const wsData = [["Data", "Conta Contábil", "Descrição", "Nº da NF", "Total Pagamentos", "Total Compras", "Saldo", "Status"]];
     dadosFornecedoresGlobais.forEach(i => {
         wsData.push([i.Data, i.Conta, i.Descricao, i.Nf, i.totalPagamentos, i.totalCompras, i.saldo, i.statusCalculado]);
