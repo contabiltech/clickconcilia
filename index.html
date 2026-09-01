@@ -346,6 +346,80 @@
             }
         }
 
+        // =========================================================================
+        // UTILITÁRIO GLOBAL PARA TRATAMENTO DE VALORES (SUPORTE A 'D', 'C' E SINAIS)
+        // =========================================================================
+        window.parseValorUniversal = function(valorStr) {
+            if (typeof valorStr === 'number') return valorStr;
+            if (!valorStr) return 0;
+            
+            let str = String(valorStr).trim().toUpperCase();
+            let multiplicador = 1;
+
+            // Identifica sufixos contábeis comuns (D = Débito / C = Crédito)
+            if (str.endsWith('D')) {
+                multiplicador = -1;
+                str = str.slice(0, -1).trim();
+            } else if (str.endsWith('C')) {
+                multiplicador = 1;
+                str = str.slice(0, -1).trim();
+            }
+
+            // Remove caracteres monetários e formata separadores decimais brasileiros/americanos
+            str = str.replace(/[R$\s]/g, '');
+            if (str.includes(',') && str.includes('.')) {
+                // Formato 1.234,56
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else if (str.includes(',')) {
+                // Formato 1234,56
+                str = str.replace(',', '.');
+            }
+
+            let num = parseFloat(str);
+            return isNaN(num) ? 0 : num * multiplicador;
+        };
+
+        // =========================================================================
+        // UTILITÁRIO PARA TRATAR PLANILHAS COM CÉLULAS MESCLADAS E QUEBRAS DE TEXTO
+        // =========================================================================
+        window.lerPlanilhaFlexivel = function(workbook) {
+            const primeiraAba = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[primeiraAba];
+
+            // Propaga valores de células mescladas verticalmente para evitar campos vazios
+            if (worksheet['!merges']) {
+                worksheet['!merges'].forEach(merge => {
+                    const startCellRef = XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c });
+                    const startCell = worksheet[startCellRef];
+                    if (startCell) {
+                        for (let R = merge.s.r; R <= merge.e.r; ++R) {
+                            for (let C = merge.s.c; C <= merge.e.c; ++C) {
+                                const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+                                if (!worksheet[cellRef]) {
+                                    worksheet[cellRef] = { t: startCell.t, v: startCell.v, w: startCell.w };
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Converte para JSON limpando quebras de linha excessivas nas chaves/valores de texto
+            const dadosBrutos = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            return dadosBrutos.map(linha => {
+                const linhaLimpa = {};
+                Object.keys(linha).forEach(chave => {
+                    let chaveLimpa = chave.replace(/[\r\n]+/g, " ").trim();
+                    let valor = linha[chave];
+                    if (typeof valor === 'string') {
+                        valor = valor.replace(/[\r\n]+/g, " ").trim();
+                    }
+                    linhaLimpa[chaveLimpa] = valor;
+                });
+                return linhaLimpa;
+            });
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             const inputs = ['extratoFile', 'razaoFile', 'fornecedorFile'];
 
