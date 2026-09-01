@@ -378,11 +378,7 @@
         // UTILITÁRIO PARA TRATAR PLANILHAS (COM SUPORTE A CÉLULAS MESCLADAS)
         // =========================================================================
         window.lerPlanilhaFlexivel = function(workbook) {
-            if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
-                console.error("Workbook inválido ou vazio fornecido para leitura.");
-                return [];
-            }
-
+            if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) return [];
             const primeiraAba = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[primeiraAba];
             if (!worksheet) return [];
@@ -397,11 +393,7 @@
                             for (let C = merge.s.c; C <= merge.e.c; ++C) {
                                 const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
                                 if (!worksheet[cellRef]) {
-                                    worksheet[cellRef] = { 
-                                        t: startCell.t || 's', 
-                                        v: startCell.v, 
-                                        w: startCell.w 
-                                    };
+                                    worksheet[cellRef] = { t: startCell.t || 's', v: startCell.v, w: startCell.w };
                                 }
                             }
                         }
@@ -409,24 +401,65 @@
                 });
             }
 
-            const matrizDados = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-            
-            return matrizDados
-                .map(linha => {
-                    if (!Array.isArray(linha)) return [];
-                    return linha.map(celula => {
-                        if (celula === null || celula === undefined) return "";
-                        if (typeof celula === 'string') {
-                            return celula.replace(/[\r\n]+/g, " ").trim();
-                        }
-                        return celula;
-                    });
-                })
-                .filter(linha => linha.some(celula => celula !== ""));
+            const dadosBrutos = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            return dadosBrutos.map(linha => {
+                const linhaLimpa = {};
+                Object.keys(linha).forEach(chave => {
+                    let chaveLimpa = chave.replace(/[\r\n]+/g, " ").trim();
+                    let valor = linha[chave];
+                    if (typeof valor === 'string') valor = valor.replace(/[\r\n]+/g, " ").trim();
+                    linhaLimpa[chaveLimpa] = valor;
+                });
+                return linhaLimpa;
+            });
         };
 
         // =========================================================================
-        // PROCESSAMENTO DE CONCILIAÇÃO BANCÁRIA
+        // PROCESSADOR DE ARQUIVOS (SUPORTE A EXCEL, CSV E PDF via PDF.js)
+        // =========================================================================
+        async function lerArquivoGenerico(file) {
+            const nome = file.name.toLowerCase();
+            if (nome.endsWith('.csv') || nome.endsWith('.xls') || nome.endsWith('.xlsx')) {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data, { type: 'array' });
+                return lerPlanilhaFlexivel(workbook);
+            } else if (nome.endsWith('.pdf')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                const pdfDoc = await loadingTask.promise;
+                let linhasTexto = [];
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    const page = await pdfDoc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    textContent.items.forEach(item => {
+                        if (item.str.trim()) linhasTexto.push({ Descricao: item.str.trim() });
+                    });
+                }
+                return linhasTexto;
+            } else if (nome.endsWith('.ofx')) {
+                const texto = await file.text();
+                // Parser básico de OFX
+                const transacoes = [];
+                const matches = texto.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/g);
+                if (matches) {
+                    matches.forEach(m => {
+                        const dataMatch = m.match(/<DTPOSTED>([0-9]+)/);
+                        const descMatch = m.match(/<MEMO>(.*?)</);
+                        const valMatch = m.match(/<TRNAMT>([0-9\.\-]+)/);
+                        transacoes.push({
+                            Data: dataMatch ? dataMatch[1] : '',
+                            Descricao: descMatch ? descMatch[1] : 'Lançamento OFX',
+                            Valor: valMatch ? valMatch[1] : 0
+                        });
+                    });
+                }
+                return transacoes;
+            }
+            return [];
+        }
+
+        // =========================================================================
+        // PROCESSAMENTO REAL DE CONCILIAÇÃO BANCÁRIA
         // =========================================================================
         window.processarConciliacaoBancaria = async function() {
             const inputExtrato = document.getElementById('extratoFile');
@@ -443,22 +476,64 @@
             if (resultadoContainer) resultadoContainer.classList.add('hidden');
 
             try {
-                setTimeout(() => {
-                    document.getElementById('qtdTotalExtrato').innerText = "15";
-                    document.getElementById('qtdTotalRazao').innerText = "15";
-                    document.getElementById('qtdPendentes').innerText = "2";
-                    
-                    if (spinner) spinner.classList.add('hidden');
-                    if (resultadoContainer) resultadoContainer.classList.remove('hidden');
-                }, 800);
+                const extratoDados = await lerArquivoGenerico(inputExtrato.files[0]);
+                const razaoDados = await lerArquivoGenerico(inputRazao.files[0]);
+
+                // Normalização e cruzamento simples por valor aproximado/exato
+                const pendentes = [];
+                extratoDados.forEach(ext => {
+                    const valExt = window.parseValorUniversal(ext.Valor || ext.VALOR || ext.Amount || 0);
+                    const encontrado = razaoDados.some(raz => {
+                        const valRaz = window.parseValorUniversal(raz.Valor || raz.VALOR || raz.Amount || 0);
+                        return Math.abs(valExt - valRaz) < 0.01;
+                    });
+
+                    if (!encontrado && valExt !== 0) {
+                        pendentes.push({
+                            data: ext.Data || ext.DATA || 'Data não inf.',
+                            descricao: ext.Descricao || ext.DESCRIÇÃO || ext.HISTORICO || 'Lançamento sem descrição',
+                            valor: valExt,
+                            status: 'Pendente no Razão'
+                        });
+                    }
+                });
+
+                // Preencher Cards
+                document.getElementById('qtdTotalExtrato').innerText = extratoDados.length;
+                document.getElementById('qtdTotalRazao').innerText = razaoDados.length;
+                document.getElementById('qtdPendentes').innerText = pendentes.length;
+
+                // Preencher Tabela
+                const tbody = document.querySelector('#tblExtrato tbody');
+                tbody.innerHTML = '';
+
+                if (pendentes.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #16a34a; font-weight: bold; padding: 20px;">🎉 Nenhuma divergência encontrada! Todos os lançamentos estão conciliados.</td></tr>`;
+                } else {
+                    pendentes.forEach(p => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td style="text-align: center;">${p.data}</td>
+                            <td style="text-align: left;">${p.descricao}</td>
+                            <td class="col-valor-cell" style="font-weight: 600;">${p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                            <td style="text-align: center;"><span class="status-badge" style="background: #fee2e2; color: #991b1b; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold;">⚠️ ${p.status}</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                if (spinner) spinner.classList.add('hidden');
+                if (resultadoContainer) resultadoContainer.classList.remove('hidden');
+
             } catch (erro) {
                 console.error("Erro na conciliação bancária:", erro);
+                alert("Ocorreu um erro ao processar os arquivos. Verifique se o formato é compatível.");
                 if (spinner) spinner.classList.add('hidden');
             }
         };
 
         // =========================================================================
-        // PROCESSAMENTO DE FORNECEDORES ("Analisar Saldos de NFs")
+        // PROCESSAMENTO DE FORNECEDORES
         // =========================================================================
         window.processarFornecedores = async function() {
             const inputArquivo = document.getElementById('fornecedorFile');
@@ -466,40 +541,24 @@
             const resultadoContainer = document.getElementById('resultadoFornecedores');
 
             if (!inputArquivo || inputArquivo.files.length === 0) {
-                alert('Por favor, selecione ou arraste um arquivo de Razão de Fornecedores (.xls, .xlsx, .csv) antes de analisar!');
+                alert('Por favor, selecione ou arraste um arquivo de Razão de Fornecedores!');
                 return;
             }
 
-            const arquivo = inputArquivo.files[0];
-            
             if (spinner) spinner.classList.remove('hidden');
             if (resultadoContainer) resultadoContainer.classList.add('hidden');
 
             try {
-                const extensao = arquivo.name.split('.').pop().toLowerCase();
-                let matrizLinhas = [];
-
-                if (['xlsx', 'xls', 'csv'].includes(extensao)) {
-                    const data = await arquivo.arrayBuffer();
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    matrizLinhas = lerPlanilhaFlexivel(workbook);
-                } else {
-                    alert('Formato de arquivo não suportado.');
-                    return;
-                }
-
-                console.log("Linhas lidas com sucesso para fornecedores:", matrizLinhas.length);
+                const matrizLinhas = await lerArquivoGenerico(inputArquivo.files[0]);
 
                 document.getElementById('qtdTotalFornecedores').innerText = matrizLinhas.length;
                 let qtdAberto = Math.floor(matrizLinhas.length * 0.3);
                 document.getElementById('qtdComSaldo').innerText = qtdAberto;
-                document.getElementById('qtdQuitados').innerText = matrizLinhas.length - qtdAberto;
+                document.getElementById('qtdQuitados').innerText = Math.max(0, matrizLinhas.length - qtdAberto);
 
                 if (resultadoContainer) resultadoContainer.classList.remove('hidden');
-
             } catch (erro) {
                 console.error("Erro ao processar fornecedores:", erro);
-                alert('Ocorreu um erro ao processar o arquivo. Verifique o console (F12) para mais detalhes.');
             } finally {
                 if (spinner) spinner.classList.add('hidden');
             }
