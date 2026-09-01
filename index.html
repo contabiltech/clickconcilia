@@ -319,7 +319,6 @@
     </main>
 
     <script>
-        // Função para alternar as abas da interface
         function mudarAba(aba) {
             const modBancaria = document.getElementById('mod-bancaria');
             const modFornecedores = document.getElementById('mod-fornecedores');
@@ -331,7 +330,6 @@
                 modBancaria.classList.add('active');
                 modFornecedores.classList.add('hidden');
                 modFornecedores.classList.remove('active');
-
                 btnBancaria.classList.add('active');
                 btnFornecedores.classList.remove('active');
             } else if (aba === 'fornecedores') {
@@ -339,15 +337,11 @@
                 modFornecedores.classList.add('active');
                 modBancaria.classList.add('hidden');
                 modBancaria.classList.remove('active');
-
                 btnFornecedores.classList.add('active');
                 btnBancaria.classList.remove('active');
             }
         }
 
-        // =========================================================================
-        // UTILITÁRIO GLOBAL PARA TRATAMENTO DE VALORES
-        // =========================================================================
         window.parseValorUniversal = function(valorStr) {
             if (typeof valorStr === 'number') return valorStr;
             if (!valorStr) return 0;
@@ -374,55 +368,68 @@
             return isNaN(num) ? 0 : num * multiplicador;
         };
 
-        // =========================================================================
-        // UTILITÁRIO PARA TRATAR PLANILHAS (COM SUPORTE A CÉLULAS MESCLADAS)
-        // =========================================================================
-        window.lerPlanilhaFlexivel = function(workbook) {
-            if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) return [];
-            const primeiraAba = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[primeiraAba];
-            if (!worksheet) return [];
+        // Normalizador flexível para extrair colunas independente dos nomes das chaves
+        function normalizarLinhas(dadosBrutos) {
+            if (!Array.isArray(dadosBrutos)) return [];
+            return dadosBrutos.map(linha => {
+                let objNormalizado = { Data: '', Descricao: '', Valor: 0 };
+                
+                if (typeof linha !== 'object' || linha === null) return objNormalizado;
 
-            if (worksheet['!merges'] && Array.isArray(worksheet['!merges'])) {
-                worksheet['!merges'].forEach(merge => {
-                    if (!merge || !merge.s || !merge.e) return;
-                    const startCellRef = XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c });
-                    const startCell = worksheet[startCellRef];
-                    if (startCell) {
-                        for (let R = merge.s.r; R <= merge.e.r; ++R) {
-                            for (let C = merge.s.c; C <= merge.e.c; ++C) {
-                                const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-                                if (!worksheet[cellRef]) {
-                                    worksheet[cellRef] = { t: startCell.t || 's', v: startCell.v, w: startCell.w };
-                                }
-                            }
+                // Tenta achar chaves dinamicamente
+                const chaves = Object.keys(linha);
+                
+                chaves.forEach(k => {
+                    const kLower = k.toLowerCase().trim();
+                    const val = linha[k];
+
+                    if (kLower.includes('data') || kLower.includes('dt') || kLower.includes('dia')) {
+                        objNormalizado.Data = String(val || '').trim();
+                    } else if (kLower.includes('hist') || kLower.includes('desc') || kLower.includes('historico') || kLower.includes('memo') || kLower.includes('narrativa')) {
+                        objNormalizado.Descricao = String(val || '').trim();
+                    } else if (kLower.includes('val') || kLower.includes('vlr') || kLower.includes('amount') || kLower.includes('tot') || kLower.includes('pgto')) {
+                        if (objNormalizado.Valor === 0 || objNormalizado.Valor === '') {
+                            objNormalizado.Valor = val;
                         }
                     }
                 });
-            }
 
-            const dadosBrutos = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-            return dadosBrutos.map(linha => {
-                const linhaLimpa = {};
-                Object.keys(linha).forEach(chave => {
-                    let chaveLimpa = chave.replace(/[\r\n]+/g, " ").trim();
-                    let valor = linha[chave];
-                    if (typeof valor === 'string') valor = valor.replace(/[\r\n]+/g, " ").trim();
-                    linhaLimpa[chaveLimpa] = valor;
-                });
-                return linhaLimpa;
-            });
-        };
+                // Se não achou colunas nomeadas explicitamente, pega por heurística posicional nas chaves
+                if (!objNormalizado.Data && chaves.length > 0) objNormalizado.Data = String(linha[chaves[0]] || '');
+                if (!objNormalizado.Descricao && chaves.length > 1) objNormalizado.Descricao = String(linha[chaves[1]] || '');
+                if (objNormalizado.Valor === 0 && chaves.length > 2) {
+                    for (let i = 2; i < chaves.length; i++) {
+                        let parsed = window.parseValorUniversal(linha[chaves[i]]);
+                        if (parsed !== 0) {
+                            objNormalizado.Valor = linha[chaves[i]];
+                            break;
+                        }
+                    }
+                }
 
-        // =========================================================================
-        // PROCESSADOR DE ARQUIVOS (SUPORTE A EXCEL, CSV E PDF via PDF.js)
-        // =========================================================================
+                return {
+                    Data: objNormalizado.Data || 'N/D',
+                    Descricao: objNormalizado.Descricao || 'Sem descrição',
+                    Valor: window.parseValorUniversal(objNormalizado.Valor)
+                };
+            }).filter(item => item.Valor !== 0 || item.Descricao !== 'Sem descrição');
+        }
+
         async function lerArquivoGenerico(file) {
             const nome = file.name.toLowerCase();
             if (nome.endsWith('.csv') || nome.endsWith('.xls') || nome.endsWith('.xlsx')) {
                 const data = await file.arrayBuffer();
                 const workbook = XLSX.read(data, { type: 'array' });
-                return lerPlanilhaFlexivel(workbook);
+                
+                // Lê todas as abas caso a primeira esteja vazia
+                let todasLinhas = [];
+                workbook.SheetNames.forEach(sheetName => {
+                    const ws = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+                    todasLinhas = todasLinhas.concat(json);
+                });
+
+                return normalizarLinhas(todasLinhas);
             } else if (nome.endsWith('.pdf')) {
                 const arrayBuffer = await file.arrayBuffer();
                 const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
@@ -432,13 +439,14 @@
                     const page = await pdfDoc.getPage(i);
                     const textContent = await page.getTextContent();
                     textContent.items.forEach(item => {
-                        if (item.str.trim()) linhasTexto.push({ Descricao: item.str.trim() });
+                        if (item.str.trim()) {
+                            linhasTexto.push({ Descricao: item.str.trim(), Data: '', Valor: 0 });
+                        }
                     });
                 }
                 return linhasTexto;
             } else if (nome.endsWith('.ofx')) {
                 const texto = await file.text();
-                // Parser básico de OFX
                 const transacoes = [];
                 const matches = texto.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/g);
                 if (matches) {
@@ -453,14 +461,11 @@
                         });
                     });
                 }
-                return transacoes;
+                return normalizarLinhas(transacoes);
             }
             return [];
         }
 
-        // =========================================================================
-        // PROCESSAMENTO REAL DE CONCILIAÇÃO BANCÁRIA
-        // =========================================================================
         window.processarConciliacaoBancaria = async function() {
             const inputExtrato = document.getElementById('extratoFile');
             const inputRazao = document.getElementById('razaoFile');
@@ -479,31 +484,26 @@
                 const extratoDados = await lerArquivoGenerico(inputExtrato.files[0]);
                 const razaoDados = await lerArquivoGenerico(inputRazao.files[0]);
 
-                // Normalização e cruzamento simples por valor aproximado/exato
                 const pendentes = [];
                 extratoDados.forEach(ext => {
-                    const valExt = window.parseValorUniversal(ext.Valor || ext.VALOR || ext.Amount || 0);
                     const encontrado = razaoDados.some(raz => {
-                        const valRaz = window.parseValorUniversal(raz.Valor || raz.VALOR || raz.Amount || 0);
-                        return Math.abs(valExt - valRaz) < 0.01;
+                        return Math.abs(ext.Valor - raz.Valor) < 0.01;
                     });
 
-                    if (!encontrado && valExt !== 0) {
+                    if (!encontrado && ext.Valor !== 0) {
                         pendentes.push({
-                            data: ext.Data || ext.DATA || 'Data não inf.',
-                            descricao: ext.Descricao || ext.DESCRIÇÃO || ext.HISTORICO || 'Lançamento sem descrição',
-                            valor: valExt,
+                            data: ext.Data,
+                            descricao: ext.Descricao,
+                            valor: ext.Valor,
                             status: 'Pendente no Razão'
                         });
                     }
                 });
 
-                // Preencher Cards
                 document.getElementById('qtdTotalExtrato').innerText = extratoDados.length;
                 document.getElementById('qtdTotalRazao').innerText = razaoDados.length;
                 document.getElementById('qtdPendentes').innerText = pendentes.length;
 
-                // Preencher Tabela
                 const tbody = document.querySelector('#tblExtrato tbody');
                 tbody.innerHTML = '';
 
@@ -532,9 +532,6 @@
             }
         };
 
-        // =========================================================================
-        // PROCESSAMENTO DE FORNECEDORES
-        // =========================================================================
         window.processarFornecedores = async function() {
             const inputArquivo = document.getElementById('fornecedorFile');
             const spinner = document.getElementById('loadingSpinnerFornecedores');
@@ -550,12 +547,10 @@
 
             try {
                 const matrizLinhas = await lerArquivoGenerico(inputArquivo.files[0]);
-
                 document.getElementById('qtdTotalFornecedores').innerText = matrizLinhas.length;
                 let qtdAberto = Math.floor(matrizLinhas.length * 0.3);
                 document.getElementById('qtdComSaldo').innerText = qtdAberto;
                 document.getElementById('qtdQuitados').innerText = Math.max(0, matrizLinhas.length - qtdAberto);
-
                 if (resultadoContainer) resultadoContainer.classList.remove('hidden');
             } catch (erro) {
                 console.error("Erro ao processar fornecedores:", erro);
@@ -564,9 +559,6 @@
             }
         };
 
-        // =========================================================================
-        // EVENTOS DE DRAG & DROP E INPUTS
-        // =========================================================================
         document.addEventListener('DOMContentLoaded', () => {
             const inputs = ['extratoFile', 'razaoFile', 'fornecedorFile'];
 
