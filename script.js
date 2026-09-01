@@ -34,10 +34,8 @@ window.lerPlanilhaFlexivel = function(workbook) {
         });
     }
 
-    // Converte a planilha em matriz de arrays (header: 1)
     const matrizDados = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
     
-    // Limpeza de quebras de linha indesejadas, espaços extras e filtragem de linhas vazias
     return matrizDados
         .map(linha => {
             if (!Array.isArray(linha)) return [];
@@ -94,19 +92,22 @@ async function lerArquivoGenerico(file) {
         
         if (matriz.length === 0) return [];
 
-        // Identifica cabeçalho dinamicamente procurando nas primeiras linhas
         let indiceCabecalho = 0;
         let colData = -1;
         let colDesc = -1;
         let colValor = -1;
+        let colConta = -1;
+        let colNf = -1;
 
         for (let i = 0; i < Math.min(matriz.length, 10); i++) {
             const linhaStr = matriz[i].map(c => String(c).toLowerCase());
             for (let j = 0; j < linhaStr.length; j++) {
                 const cel = linhaStr[j];
                 if ((cel.includes('data') || cel.includes('dt')) && colData === -1) colData = j;
-                if ((cel.includes('hist') || cel.includes('desc') || cel.includes('memo')) && colDesc === -1) colDesc = j;
-                if ((cel.includes('val') || cel.includes('vlr') || cel.includes('amount') || cel.includes('saldo')) && colValor === -1) colValor = j;
+                if ((cel.includes('hist') || cel.includes('desc') || cel.includes('memo') || cel.includes('historico')) && colDesc === -1) colDesc = j;
+                if ((cel.includes('val') || cel.includes('vlr') || cel.includes('amount') || cel.includes('saldo') || cel.includes('valor')) && colValor === -1) colValor = j;
+                if ((cel.includes('conta') || cel.includes('ct')) && colConta === -1) colConta = j;
+                if ((cel.includes('nf') || cel.includes('nota') || cel.includes('documento') || cel.includes('doc')) && colNf === -1) colNf = j;
             }
             if (colData !== -1 || colValor !== -1) {
                 indiceCabecalho = i;
@@ -114,7 +115,6 @@ async function lerArquivoGenerico(file) {
             }
         }
 
-        // Se não achou colunas explicitamente, assume padrão posicional (col 0 = Data, col 1 = Desc, última numérica = Valor)
         if (colValor === -1) colValor = matriz[indiceCabecalho].length - 1;
         if (colDesc === -1 && matriz[indiceCabecalho].length > 1) colDesc = 1;
         if (colData === -1) colData = 0;
@@ -128,11 +128,15 @@ async function lerArquivoGenerico(file) {
             const descVal = linha[colDesc] !== undefined ? String(linha[colDesc]) : 'Lançamento sem descrição';
             const valBruto = linha[colValor] !== undefined ? linha[colValor] : 0;
             const valorParsed = window.parseValorUniversal(valBruto);
+            const contaVal = colConta !== -1 ? String(linha[colConta]) : '';
+            const nfVal = colNf !== -1 ? String(linha[colNf]) : '';
 
             if (valorParsed !== 0 || descVal !== 'Lançamento sem descrição') {
                 resultado.push({
                     Data: dataVal,
+                    Conta: contaVal,
                     Descricao: descVal,
+                    Nf: nfVal,
                     Valor: valorParsed
                 });
             }
@@ -149,7 +153,7 @@ async function lerArquivoGenerico(file) {
             const textContent = await page.getTextContent();
             textContent.items.forEach(item => {
                 if (item.str.trim()) {
-                    linhasTexto.push({ Data: '', Descricao: item.str.trim(), Valor: 0 });
+                    linhasTexto.push({ Data: '', Conta: '', Descricao: item.str.trim(), Nf: '', Valor: 0 });
                 }
             });
         }
@@ -166,7 +170,9 @@ async function lerArquivoGenerico(file) {
                 const valMatch = m.match(/<TRNAMT>([0-9\.\-]+)/);
                 transacoes.push({
                     Data: dataMatch ? dataMatch[1] : '',
+                    Conta: '',
                     Descricao: descMatch ? descMatch[1] : 'Lançamento OFX',
+                    Nf: '',
                     Valor: valMatch ? window.parseValorUniversal(valMatch[1]) : 0
                 });
             });
@@ -243,8 +249,10 @@ window.processarConciliacaoBancaria = async function() {
 };
 
 // =========================================================================
-// PROCESSAMENTO DE FORNECEDORES
+// PROCESSAMENTO DE FORNECEDORES (COM POPULAÇÃO DA TABELA VISUAL)
 // =========================================================================
+let dadosFornecedoresGlobais = [];
+
 window.processarFornecedores = async function() {
     const inputArquivo = document.getElementById('fornecedorFile');
     const spinner = document.getElementById('loadingSpinnerFornecedores');
@@ -259,23 +267,110 @@ window.processarFornecedores = async function() {
     if (resultadoContainer) resultadoContainer.classList.add('hidden');
 
     try {
-        const matrizLinhas = await lerArquivoGenerico(inputArquivo.files[0]);
-        document.getElementById('qtdTotalFornecedores').innerText = matrizLinhas.length;
-        let qtdAberto = Math.floor(matrizLinhas.length * 0.3);
+        dadosFornecedoresGlobais = await lerArquivoGenerico(inputArquivo.files[0]);
+
+        // Processa os dados para calcular pagamentos, compras e saldos por lançamento
+        let qtdTotal = dadosFornecedoresGlobais.length;
+        let qtdAberto = 0;
+        let qtdQuitados = 0;
+
+        dadosFornecedoresGlobais.forEach(item => {
+            // Lógica de saldo: se valor > 0 é compra/título, se < 0 é pagamento
+            item.totalCompras = item.Valor > 0 ? item.Valor : 0;
+            item.totalPagamentos = item.Valor < 0 ? Math.abs(item.Valor) : 0;
+            item.saldo = item.totalCompras - item.totalPagamentos;
+            
+            if (Math.abs(item.saldo) > 0.01) {
+                item.statusCalculado = 'Aberto';
+                qtdAberto++;
+            } else {
+                item.statusCalculado = 'Quitado';
+                qtdQuitados++;
+            }
+        });
+
+        document.getElementById('qtdTotalFornecedores').innerText = qtdTotal;
         document.getElementById('qtdComSaldo').innerText = qtdAberto;
-        document.getElementById('qtdQuitados').innerText = Math.max(0, matrizLinhas.length - qtdAberto);
+        document.getElementById('qtdQuitados').innerText = qtdQuitados;
+
+        renderizarTabelaFornecedores(dadosFornecedoresGlobais, 'Resumo de Títulos e Saldos por Fornecedor (Todos)');
+
         if (resultadoContainer) resultadoContainer.classList.remove('hidden');
     } catch (erro) {
         console.error("Erro ao processar fornecedores:", erro);
+        alert("Erro ao processar o arquivo de fornecedores.");
     } finally {
         if (spinner) spinner.classList.add('hidden');
     }
 };
 
+function renderizarTabelaFornecedores(dados, tituloMensagem) {
+    const tbody = document.querySelector('#tblFornecedores tbody');
+    const tituloHeader = document.getElementById('tituloTabelaFornecedores');
+    if (tituloHeader) tituloHeader.innerText = `📋 ${tituloMensagem}`;
+    
+    tbody.innerHTML = '';
+
+    if (dados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #64748b; padding: 20px;">Nenhum lançamento encontrado para este filtro.</td></tr>`;
+        return;
+    }
+
+    dados.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        const badgeStyle = item.statusCalculado === 'Aberto' 
+            ? 'background: #fef3c7; color: #92400e;' 
+            : 'background: #dcfce7; color: #166534;';
+
+        tr.innerHTML = `
+            <td style="text-align: center; color: #64748b; font-size: 11px;">${index + 1}</td>
+            <td style="text-align: center;">${item.Data || '-'}</td>
+            <td style="text-align: center;">${item.Conta || '-'}</td>
+            <td style="text-align: left;">${item.Descricao}</td>
+            <td style="text-align: center;">${item.Nf || '-'}</td>
+            <td class="col-valor-cell">${item.totalPagamentos > 0 ? item.totalPagamentos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}</td>
+            <td class="col-valor-cell">${item.totalCompras > 0 ? item.totalCompras.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}</td>
+            <td class="col-valor-cell" style="font-weight: bold;">${item.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="text-align: center;"><span class="status-badge" style="${badgeStyle} border-radius: 4px; padding: 4px 8px; font-size: 11px; font-weight: bold;">${item.statusCalculado}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
 window.filtrarTabelaFornecedores = function(filtro) {
-    console.log("Filtro aplicado:", filtro);
+    if (!dadosFornecedoresGlobais || dadosFornecedoresGlobais.length === 0) return;
+
+    let dadosFiltrados = [];
+    let titulo = '';
+
+    if (filtro === 'todos') {
+        dadosFiltrados = dadosFornecedoresGlobais;
+        titulo = 'Resumo de Títulos e Saldos por Fornecedor (Todos)';
+    } else if (filtro === 'aberto') {
+        dadosFiltrados = dadosFornecedoresGlobais.filter(i => i.statusCalculado === 'Aberto');
+        titulo = 'NFs / Títulos em Aberto';
+    } else if (filtro === 'quitados') {
+        dadosFiltrados = dadosFornecedoresGlobais.filter(i => i.statusCalculado === 'Quitado');
+        titulo = 'Títulos Quitados';
+    }
+
+    renderizarTabelaFornecedores(dadosFiltrados, titulo);
 };
 
 window.exportarRelatorioFornecedoresXLSX = function() {
-    alert("Exportação em Excel acionada com sucesso!");
+    if (!dadosFornecedoresGlobais || dadosFornecedoresGlobais.length === 0) {
+        alert("Não há dados para exportar. Processe um arquivo primeiro.");
+        return;
+    }
+    
+    // Exportação rápida via SheetJS
+    const wsData = [["Data", "Conta Contábil", "Descrição", "Nº da NF", "Total Pagamentos", "Total Compras", "Saldo", "Status"]];
+    dadosFornecedoresGlobais.forEach(i => {
+        wsData.push([i.Data, i.Conta, i.Descricao, i.Nf, i.totalPagamentos, i.totalCompras, i.saldo, i.statusCalculado]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, "Fornecedores");
+    XLSX.writeFile(wb, "Relatorio_Fornecedores.xlsx");
 };
