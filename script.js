@@ -74,7 +74,7 @@ function parseValorUniversal(valorBruto) {
     return isNaN(num) ? 0.0 : num * multiplicador;
 }
 
-// Leitura de planilha com suporte a XLSX
+// Leitura de planilha com suporte a XLSX / XLS
 function lerArquivoPlanilha(file, origem) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -95,11 +95,10 @@ function lerArquivoPlanilha(file, origem) {
     });
 }
 
-// Função auxiliar para leitura de PDF com OCR automático forçado (caso utilize PDF.js / Tesseract)
+// Função auxiliar para leitura de PDF com OCR automático forçado
 async function lerArquivoPDFComOCR(file, origem) {
     return new Promise(async (resolve, reject) => {
         try {
-            // Exemplo de integração com leitor PDF e fallback/forçamento de OCR se necessário
             const reader = new FileReader();
             reader.onload = async function() {
                 try {
@@ -112,10 +111,7 @@ async function lerArquivoPDFComOCR(file, origem) {
                         const textContent = await page.getTextContent();
                         let textoPagina = textContent.items.map(item => item.str).join(" ");
                         
-                        // Forçar OCR automático se o texto extraído for insuficiente (ex: PDF escaneado/imagem)
                         if (textoPagina.trim().length < 20 && typeof Tesseract !== 'undefined') {
-                            console.log(`[OCR Automático] Página ${i} parece ser imagem. Acionando OCR...`);
-                            // Renderiza página em canvas para OCR
                             const viewport = page.getViewport({ scale: 1.5 });
                             const canvas = document.createElement('canvas');
                             const context = canvas.getContext('2d');
@@ -129,7 +125,6 @@ async function lerArquivoPDFComOCR(file, origem) {
                         textoCompleto += textoPagina + "\n";
                     }
                     
-                    // Processar linhas extraídas do PDF para o formato padrão
                     resolve(normalizarTextoRazaoOuExtrato(textoCompleto, origem));
                 } catch (e) {
                     reject(e);
@@ -145,11 +140,9 @@ async function lerArquivoPDFComOCR(file, origem) {
 function normalizarTextoRazaoOuExtrato(texto, origem) {
     let linhasNormalizadas = [];
     const linhas = texto.split('\n');
-    let i = 0;
     
     linhas.forEach((linha, index) => {
         let linhaStr = linha.trim();
-        // Regex básica para capturar datas DD/MM/AAAA e valores monetários
         const regexData = /\d{2}\/\d{2}\/\d{4}/;
         if (regexData.test(linhaStr)) {
             linhasNormalizadas.push({
@@ -195,7 +188,6 @@ function normalizarDadosPlanilha(linhas, origem) {
         let descricao = String(linha[idxDesc] || 'Sem histórico').trim();
         let contaContabil = idxConta !== -1 && linha[idxConta] ? String(linha[idxConta]).trim() : 'N/A';
         
-        // Verifica se há colunas separadas de Débito e Crédito no razão
         let valor = 0;
         if (linha.length > 4) {
             let debito = parseValorUniversal(linha[3]);
@@ -235,7 +227,6 @@ async function processarConciliacaoBancaria() {
     resultadoContainer.classList.add('hidden');
 
     try {
-        // Verifica se é PDF e aplica OCR se necessário
         const lerArquivo = async (file, origem) => {
             if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
                 return await lerArquivoPDFComOCR(file, origem);
@@ -306,3 +297,159 @@ function renderizarTabelaUnica(idTabela, lista) {
         tbody.appendChild(tr);
     });
 }
+
+// =========================================================================
+// MÓDULO DE FORNECEDORES (ADICIONADO)
+// =========================================================================
+
+window.processarFornecedores = async function() {
+    const fileInput = document.getElementById('fornecedorFile');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert("Por favor, selecione o arquivo de Razão de Fornecedores.");
+        return;
+    }
+
+    const spinner = document.getElementById('loadingSpinnerFornecedores');
+    const resultado = document.getElementById('resultadoFornecedores');
+
+    spinner.classList.remove('hidden');
+    resultado.classList.add('hidden');
+
+    try {
+        const file = fileInput.files[0];
+        let dadosBrutos = [];
+
+        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+            dadosBrutos = await lerArquivoPDFComOCR(file, 'FORN');
+        } else {
+            dadosBrutos = await lerArquivoPlanilha(file, 'FORN');
+        }
+
+        // Processamento e agrupamento por NF / Fornecedor
+        dadosFornecedoresProcessados = dadosBrutos.map((item, index) => {
+            // Tenta extrair número de NF da descrição se houver (ex: "NF 12345" ou "NFE 12345")
+            let matchNF = item.descricao.match(/(?:NF|NFC-e|NFE|NF-e)[\s:]*(\d+)/i);
+            let numNF = matchNF ? matchNF[1] : `NF-${index + 1}`;
+            
+            let valor = item.valor;
+            let totalCompras = valor > 0 ? valor : 0;
+            let totalPagamentos = valor < 0 ? Math.abs(valor) : 0;
+            let saldo = totalCompras - totalPagamentos;
+            let quitado = Math.abs(saldo) < 0.01;
+
+            return {
+                ...item,
+                numNF: numNF,
+                totalCompras: totalCompras,
+                totalPagamentos: totalPagamentos,
+                saldo: saldo,
+                quitado: quitado,
+                status: quitado ? 'Quitado' : 'Em Aberto'
+            };
+        });
+
+        atualizarResumoEExibirFornecedores();
+
+        spinner.classList.add('hidden');
+        resultado.classList.remove('hidden');
+
+    } catch (erro) {
+        spinner.classList.add('hidden');
+        alert("Erro ao processar o arquivo de fornecedores. Verifique o console.");
+        console.error("Erro fornecedores:", erro);
+    }
+};
+
+function atualizarResumoEExibirFornecedores() {
+    const totalItens = dadosFornecedoresProcessados.length;
+    const emAberto = dadosFornecedoresProcessados.filter(i => !i.quitado).length;
+    const quitados = dadosFornecedoresProcessados.filter(i => i.quitado).length;
+
+    document.getElementById('qtdTotalFornecedores').innerText = totalItens;
+    document.getElementById('qtdComSaldo').innerText = emAberto;
+    document.getElementById('qtdQuitados').innerText = quitados;
+
+    filtrarTabelaFornecedores(filtroFornecedoresAtual);
+}
+
+window.filtrarTabelaFornecedores = function(filtro) {
+    filtroFornecedoresAtual = filtro;
+    
+    // Atualiza classes visuais dos cards
+    document.getElementById('cardFiltroTodos').style.border = filtro === 'todos' ? '2px solid #2563eb' : 'none';
+    document.getElementById('cardFiltroAberto').style.border = filtro === 'aberto' ? '2px solid #d97706' : 'none';
+    document.getElementById('cardFiltroQuitados').style.border = filtro === 'quitados' ? '2px solid #16a34a' : 'none';
+
+    let dadosFiltrados = dadosFornecedoresProcessados;
+    let tituloFiltroTexto = "Todos";
+
+    if (filtro === 'aberto') {
+        dadosFiltrados = dadosFornecedoresProcessados.filter(i => !i.quitado);
+        tituloFiltroTexto = "Títulos em Aberto";
+    } else if (filtro === 'quitados') {
+        dadosFiltrados = dadosFornecedoresProcessados.filter(i => i.quitado);
+        tituloFiltroTexto = "Títulos Quitados";
+    }
+
+    document.getElementById('tituloTabelaFornecedores').innerText = `📋 Resumo de Títulos e Saldos por Fornecedor (${tituloFiltroTexto})`;
+
+    const tabela = document.getElementById('tblFornecedores');
+    const tbody = tabela.querySelector('tbody');
+    tbody.innerHTML = '';
+
+    if (dadosFiltrados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #64748b; font-weight: bold; padding: 1rem;">Nenhum registro encontrado para este filtro.</td></tr>`;
+        return;
+    }
+
+    dadosFiltrados.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        const corStatus = item.quitado ? '#16a34a' : '#d97706';
+        const bgStatus = item.quitado ? '#f0fdf4' : '#fffbeb';
+        const borderStatus = item.quitado ? '#bbf7d0' : '#fef3c7';
+
+        tr.innerHTML = `
+            <td style="text-align: center;">${index + 1}</td>
+            <td style="text-align: center;">${item.data}</td>
+            <td style="text-align: center;">${item.contaContabil}</td>
+            <td>${item.descricao}</td>
+            <td style="text-align: center; font-weight: bold;">${item.numNF}</td>
+            <td style="text-align: right;">${item.totalPagamentos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="text-align: right;">${item.totalCompras.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="text-align: right; font-weight: bold;">${item.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <td style="text-align: center;"><span class="status-badge" style="background: ${bgStatus}; color: ${corStatus}; border: 1px solid ${borderStatus}; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold;">${item.status}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+window.exportarRelatorioFornecedoresXLSX = function() {
+    if (!dadosFornecedoresProcessados || dadosFornecedoresProcessados.length === 0) {
+        alert("Não há dados processados para exportar.");
+        return;
+    }
+
+    let dadosFiltrados = dadosFornecedoresProcessados;
+    if (filtroFornecedoresAtual === 'aberto') {
+        dadosFiltrados = dadosFornecedoresProcessados.filter(i => !i.quitado);
+    } else if (filtroFornecedoresAtual === 'quitados') {
+        dadosFiltrados = dadosFornecedoresProcessados.filter(i => i.quitado);
+    }
+
+    const dadosExportacao = dadosFiltrados.map((item, idx) => ({
+        "Item": idx + 1,
+        "Data": item.data,
+        "Conta Contábil": item.contaContabil,
+        "Descrição": item.descricao,
+        "Nº da NF": item.numNF,
+        "Total Pagamentos": item.totalPagamentos,
+        "Total Compras": item.totalCompras,
+        "Saldo": item.saldo,
+        "Status": item.status
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dadosExportacao);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio_Fornecedores");
+    XLSX.writeFile(workbook, `Relatorio_Fornecedores_${filtroFornecedoresAtual}.xlsx`);
+};
