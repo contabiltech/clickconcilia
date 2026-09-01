@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClickConcilia - Ferramenta de Conciliação Inteligente</title>
+    <title>ClickConcilia - Ferramenta de Conciliação</title>
     <link rel="stylesheet" href="style.css">
-    <!-- CDNs Externos -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
     <style>
         /* =========================================================
@@ -75,7 +74,7 @@
             font-weight: 600;
             border-radius: 6px;
             transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-            pointer-events: none;
+            pointer-events: none; /* Garante que o clique passe direto para a dropzone principal */
         }
 
         .dropzone:hover .btn-upload-click {
@@ -140,8 +139,9 @@
             word-wrap: break-word;
         }
 
+        /* Alinhamento de Colunas */
         .col-valor-header {
-            text-align: center !important;
+            text-align: right !important; /* Ajustado para alinhar perfeitamente com os valores monetários */
         }
 
         .col-valor-cell {
@@ -167,6 +167,7 @@
             text-align: center !important;
         }
 
+        /* Formatadores de Status Badges */
         .status-badge, .badge, td span {
             white-space: nowrap !important;
             display: inline-flex !important;
@@ -185,38 +186,38 @@
     </style>
 </head>
 <body>
-    <header role="banner">
+    <header>
         <h1 onclick="window.location.reload();" title="Clique para recarregar a página">ClickConcilia</h1>
-        <nav role="navigation" aria-label="Menu principal">
+        <nav>
             <button id="btn-aba-bancaria" class="nav-btn active" onclick="mudarAba('bancaria')" title="Alternar para Conciliação Bancária">🏦 Conciliação Bancária</button>
             <button id="btn-aba-fornecedores" class="nav-btn" onclick="mudarAba('fornecedores')" title="Alternar para Conciliação de Fornecedores">🏬 Conciliação de Fornecedores</button>
         </nav>
     </header>
 
-    <main role="main">
+    <main>
         <!-- MÓDULO: BANCÁRIA -->
-        <section id="mod-bancaria" class="modulo active" aria-labelledby="btn-aba-bancaria">
+        <section id="mod-bancaria" class="modulo active">
             <h2>Conciliação Bancária</h2>
             <div class="upload-container">
                 <div class="dropzone" onclick="document.getElementById('extratoFile').click()" title="Clique ou arraste o arquivo do Extrato">
                     <h3>Extrato</h3>
                     <p id="label-extratoFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .OFX, .CSV, .XLS, .XLSX, .PDF</p>
-                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xls,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Extrato">
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf" style="display: none;">
                 </div>
                 <div class="dropzone" onclick="document.getElementById('razaoFile').click()" title="Clique ou arraste o arquivo do Razão">
                     <h3>Razão</h3>
                     <p id="label-razaoFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLS, .XLSX, .PDF</p>
-                    <input type="file" id="razaoFile" accept=".csv,.xls,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Razão">
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf" style="display: none;">
                 </div>
             </div>
             
             <button class="btn-primary" onclick="processarConciliacaoBancaria()">Processar Conciliação</button>
 
-            <div id="loadingSpinner" class="spinner-container hidden" aria-live="polite">
+            <div id="loadingSpinner" class="spinner-container hidden">
                 <div class="spinner"></div>
                 <p>Processando arquivos, aguarde...</p>
             </div>
@@ -255,20 +256,20 @@
         </section>
 
         <!-- MÓDULO: FORNECEDORES -->
-        <section id="mod-fornecedores" class="modulo hidden" aria-labelledby="btn-aba-fornecedores">
+        <section id="mod-fornecedores" class="modulo hidden">
             <h2>Conciliação de Fornecedores</h2>
             <div class="upload-container">
                 <div class="dropzone unica" onclick="document.getElementById('fornecedorFile').click()" title="Clique ou arraste o arquivo de Razão de Fornecedores">
                     <h3>Razão de Fornecedores</h3>
                     <p id="label-fornecedorFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLS, .XLSX, .PDF</p>
-                    <input type="file" id="fornecedorFile" accept=".csv,.xls,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Razão de Fornecedores">
+                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf" style="display: none;">
                 </div>
             </div>
             <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos de NFs</button>
 
-            <div id="loadingSpinnerFornecedores" class="spinner-container hidden" aria-live="polite">
+            <div id="loadingSpinnerFornecedores" class="spinner-container hidden">
                 <div class="spinner"></div>
                 <p>Analisando razões de fornecedores, aguarde...</p>
             </div>
@@ -319,6 +320,7 @@
     </main>
 
     <script>
+        // Função para alternar as abas da interface
         function mudarAba(aba) {
             const modBancaria = document.getElementById('mod-bancaria');
             const modFornecedores = document.getElementById('mod-fornecedores');
@@ -330,6 +332,7 @@
                 modBancaria.classList.add('active');
                 modFornecedores.classList.add('hidden');
                 modFornecedores.classList.remove('active');
+
                 btnBancaria.classList.add('active');
                 btnFornecedores.classList.remove('active');
             } else if (aba === 'fornecedores') {
@@ -337,227 +340,11 @@
                 modFornecedores.classList.add('active');
                 modBancaria.classList.add('hidden');
                 modBancaria.classList.remove('active');
+
                 btnFornecedores.classList.add('active');
                 btnBancaria.classList.remove('active');
             }
         }
-
-        window.parseValorUniversal = function(valorStr) {
-            if (typeof valorStr === 'number') return valorStr;
-            if (!valorStr) return 0;
-            
-            let str = String(valorStr).trim().toUpperCase();
-            let multiplicador = 1;
-
-            if (str.endsWith('D')) {
-                multiplicador = -1;
-                str = str.slice(0, -1).trim();
-            } else if (str.endsWith('C')) {
-                multiplicador = 1;
-                str = str.slice(0, -1).trim();
-            }
-
-            str = str.replace(/[R$\s]/g, '');
-            if (str.includes(',') && str.includes('.')) {
-                str = str.replace(/\./g, '').replace(',', '.');
-            } else if (str.includes(',')) {
-                str = str.replace(',', '.');
-            }
-
-            let num = parseFloat(str);
-            return isNaN(num) ? 0 : num * multiplicador;
-        };
-
-        // Normalizador flexível para extrair colunas independente dos nomes das chaves
-        function normalizarLinhas(dadosBrutos) {
-            if (!Array.isArray(dadosBrutos)) return [];
-            return dadosBrutos.map(linha => {
-                let objNormalizado = { Data: '', Descricao: '', Valor: 0 };
-                
-                if (typeof linha !== 'object' || linha === null) return objNormalizado;
-
-                // Tenta achar chaves dinamicamente
-                const chaves = Object.keys(linha);
-                
-                chaves.forEach(k => {
-                    const kLower = k.toLowerCase().trim();
-                    const val = linha[k];
-
-                    if (kLower.includes('data') || kLower.includes('dt') || kLower.includes('dia')) {
-                        objNormalizado.Data = String(val || '').trim();
-                    } else if (kLower.includes('hist') || kLower.includes('desc') || kLower.includes('historico') || kLower.includes('memo') || kLower.includes('narrativa')) {
-                        objNormalizado.Descricao = String(val || '').trim();
-                    } else if (kLower.includes('val') || kLower.includes('vlr') || kLower.includes('amount') || kLower.includes('tot') || kLower.includes('pgto')) {
-                        if (objNormalizado.Valor === 0 || objNormalizado.Valor === '') {
-                            objNormalizado.Valor = val;
-                        }
-                    }
-                });
-
-                // Se não achou colunas nomeadas explicitamente, pega por heurística posicional nas chaves
-                if (!objNormalizado.Data && chaves.length > 0) objNormalizado.Data = String(linha[chaves[0]] || '');
-                if (!objNormalizado.Descricao && chaves.length > 1) objNormalizado.Descricao = String(linha[chaves[1]] || '');
-                if (objNormalizado.Valor === 0 && chaves.length > 2) {
-                    for (let i = 2; i < chaves.length; i++) {
-                        let parsed = window.parseValorUniversal(linha[chaves[i]]);
-                        if (parsed !== 0) {
-                            objNormalizado.Valor = linha[chaves[i]];
-                            break;
-                        }
-                    }
-                }
-
-                return {
-                    Data: objNormalizado.Data || 'N/D',
-                    Descricao: objNormalizado.Descricao || 'Sem descrição',
-                    Valor: window.parseValorUniversal(objNormalizado.Valor)
-                };
-            }).filter(item => item.Valor !== 0 || item.Descricao !== 'Sem descrição');
-        }
-
-        async function lerArquivoGenerico(file) {
-            const nome = file.name.toLowerCase();
-            if (nome.endsWith('.csv') || nome.endsWith('.xls') || nome.endsWith('.xlsx')) {
-                const data = await file.arrayBuffer();
-                const workbook = XLSX.read(data, { type: 'array' });
-                
-                // Lê todas as abas caso a primeira esteja vazia
-                let todasLinhas = [];
-                workbook.SheetNames.forEach(sheetName => {
-                    const ws = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
-                    todasLinhas = todasLinhas.concat(json);
-                });
-
-                return normalizarLinhas(todasLinhas);
-            } else if (nome.endsWith('.pdf')) {
-                const arrayBuffer = await file.arrayBuffer();
-                const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                const pdfDoc = await loadingTask.promise;
-                let linhasTexto = [];
-                for (let i = 1; i <= pdfDoc.numPages; i++) {
-                    const page = await pdfDoc.getPage(i);
-                    const textContent = await page.getTextContent();
-                    textContent.items.forEach(item => {
-                        if (item.str.trim()) {
-                            linhasTexto.push({ Descricao: item.str.trim(), Data: '', Valor: 0 });
-                        }
-                    });
-                }
-                return linhasTexto;
-            } else if (nome.endsWith('.ofx')) {
-                const texto = await file.text();
-                const transacoes = [];
-                const matches = texto.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/g);
-                if (matches) {
-                    matches.forEach(m => {
-                        const dataMatch = m.match(/<DTPOSTED>([0-9]+)/);
-                        const descMatch = m.match(/<MEMO>(.*?)</);
-                        const valMatch = m.match(/<TRNAMT>([0-9\.\-]+)/);
-                        transacoes.push({
-                            Data: dataMatch ? dataMatch[1] : '',
-                            Descricao: descMatch ? descMatch[1] : 'Lançamento OFX',
-                            Valor: valMatch ? valMatch[1] : 0
-                        });
-                    });
-                }
-                return normalizarLinhas(transacoes);
-            }
-            return [];
-        }
-
-        window.processarConciliacaoBancaria = async function() {
-            const inputExtrato = document.getElementById('extratoFile');
-            const inputRazao = document.getElementById('razaoFile');
-            const spinner = document.getElementById('loadingSpinner');
-            const resultadoContainer = document.getElementById('resultadoBancaria');
-
-            if (!inputExtrato.files.length || !inputRazao.files.length) {
-                alert('Por favor, selecione os arquivos de Extrato e Razão bancária!');
-                return;
-            }
-
-            if (spinner) spinner.classList.remove('hidden');
-            if (resultadoContainer) resultadoContainer.classList.add('hidden');
-
-            try {
-                const extratoDados = await lerArquivoGenerico(inputExtrato.files[0]);
-                const razaoDados = await lerArquivoGenerico(inputRazao.files[0]);
-
-                const pendentes = [];
-                extratoDados.forEach(ext => {
-                    const encontrado = razaoDados.some(raz => {
-                        return Math.abs(ext.Valor - raz.Valor) < 0.01;
-                    });
-
-                    if (!encontrado && ext.Valor !== 0) {
-                        pendentes.push({
-                            data: ext.Data,
-                            descricao: ext.Descricao,
-                            valor: ext.Valor,
-                            status: 'Pendente no Razão'
-                        });
-                    }
-                });
-
-                document.getElementById('qtdTotalExtrato').innerText = extratoDados.length;
-                document.getElementById('qtdTotalRazao').innerText = razaoDados.length;
-                document.getElementById('qtdPendentes').innerText = pendentes.length;
-
-                const tbody = document.querySelector('#tblExtrato tbody');
-                tbody.innerHTML = '';
-
-                if (pendentes.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #16a34a; font-weight: bold; padding: 20px;">🎉 Nenhuma divergência encontrada! Todos os lançamentos estão conciliados.</td></tr>`;
-                } else {
-                    pendentes.forEach(p => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td style="text-align: center;">${p.data}</td>
-                            <td style="text-align: left;">${p.descricao}</td>
-                            <td class="col-valor-cell" style="font-weight: 600;">${p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                            <td style="text-align: center;"><span class="status-badge" style="background: #fee2e2; color: #991b1b; border-radius: 4px; padding: 4px 8px; font-size: 12px; font-weight: bold;">⚠️ ${p.status}</span></td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-
-                if (spinner) spinner.classList.add('hidden');
-                if (resultadoContainer) resultadoContainer.classList.remove('hidden');
-
-            } catch (erro) {
-                console.error("Erro na conciliação bancária:", erro);
-                alert("Ocorreu um erro ao processar os arquivos. Verifique se o formato é compatível.");
-                if (spinner) spinner.classList.add('hidden');
-            }
-        };
-
-        window.processarFornecedores = async function() {
-            const inputArquivo = document.getElementById('fornecedorFile');
-            const spinner = document.getElementById('loadingSpinnerFornecedores');
-            const resultadoContainer = document.getElementById('resultadoFornecedores');
-
-            if (!inputArquivo || inputArquivo.files.length === 0) {
-                alert('Por favor, selecione ou arraste um arquivo de Razão de Fornecedores!');
-                return;
-            }
-
-            if (spinner) spinner.classList.remove('hidden');
-            if (resultadoContainer) resultadoContainer.classList.add('hidden');
-
-            try {
-                const matrizLinhas = await lerArquivoGenerico(inputArquivo.files[0]);
-                document.getElementById('qtdTotalFornecedores').innerText = matrizLinhas.length;
-                let qtdAberto = Math.floor(matrizLinhas.length * 0.3);
-                document.getElementById('qtdComSaldo').innerText = qtdAberto;
-                document.getElementById('qtdQuitados').innerText = Math.max(0, matrizLinhas.length - qtdAberto);
-                if (resultadoContainer) resultadoContainer.classList.remove('hidden');
-            } catch (erro) {
-                console.error("Erro ao processar fornecedores:", erro);
-            } finally {
-                if (spinner) spinner.classList.add('hidden');
-            }
-        };
 
         document.addEventListener('DOMContentLoaded', () => {
             const inputs = ['extratoFile', 'razaoFile', 'fornecedorFile'];
@@ -601,5 +388,6 @@
             }
         });
     </script>
+    <script src="script.js"></script>
 </body>
 </html>
