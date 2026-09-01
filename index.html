@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClickConcilia - Ferramenta de Conciliação</title>
+    <title>ClickConcilia - Ferramenta de Conciliação Inteligente</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- CDNs Externos -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" defer></script>
 
     <style>
         /* =========================================================
-           AJUSTES E EFEITOS DE INTERAÇÃO (HOVER / ACTIVE)
-           ========================================================= */
+            AJUSTES E EFEITOS DE INTERAÇÃO (HOVER / ACTIVE)
+            ========================================================= */
 
         /* Título do Cabeçalho */
         header h1 {
@@ -186,17 +187,17 @@
     </style>
 </head>
 <body>
-    <header>
+    <header role="banner">
         <h1 onclick="window.location.reload();" title="Clique para recarregar a página">ClickConcilia</h1>
-        <nav>
+        <nav role="navigation" aria-label="Menu principal">
             <button id="btn-aba-bancaria" class="nav-btn active" onclick="mudarAba('bancaria')" title="Alternar para Conciliação Bancária">🏦 Conciliação Bancária</button>
             <button id="btn-aba-fornecedores" class="nav-btn" onclick="mudarAba('fornecedores')" title="Alternar para Conciliação de Fornecedores">🏬 Conciliação de Fornecedores</button>
         </nav>
     </header>
 
-    <main>
+    <main role="main">
         <!-- MÓDULO: BANCÁRIA -->
-        <section id="mod-bancaria" class="modulo active">
+        <section id="mod-bancaria" class="modulo active" aria-labelledby="btn-aba-bancaria">
             <h2>Conciliação Bancária</h2>
             <div class="upload-container">
                 <div class="dropzone" onclick="document.getElementById('extratoFile').click()" title="Clique ou arraste o arquivo do Extrato">
@@ -204,20 +205,20 @@
                     <p id="label-extratoFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
                     <p class="formatos" style="margin-top: 8px;">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf" style="display: none;">
+                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Extrato">
                 </div>
                 <div class="dropzone" onclick="document.getElementById('razaoFile').click()" title="Clique ou arraste o arquivo do Razão">
                     <h3>Razão</h3>
                     <p id="label-razaoFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
                     <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf" style="display: none;">
+                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Razão">
                 </div>
             </div>
             
             <button class="btn-primary" onclick="processarConciliacaoBancaria()">Processar Conciliação</button>
 
-            <div id="loadingSpinner" class="spinner-container hidden">
+            <div id="loadingSpinner" class="spinner-container hidden" aria-live="polite">
                 <div class="spinner"></div>
                 <p>Processando arquivos, aguarde...</p>
             </div>
@@ -256,7 +257,7 @@
         </section>
 
         <!-- MÓDULO: FORNECEDORES -->
-        <section id="mod-fornecedores" class="modulo hidden">
+        <section id="mod-fornecedores" class="modulo hidden" aria-labelledby="btn-aba-fornecedores">
             <h2>Conciliação de Fornecedores</h2>
             <div class="upload-container">
                 <div class="dropzone unica" onclick="document.getElementById('fornecedorFile').click()" title="Clique ou arraste o arquivo de Razão de Fornecedores">
@@ -264,12 +265,12 @@
                     <p id="label-fornecedorFile">Arraste seu arquivo aqui</p>
                     <div class="btn-upload-click">Clique aqui para enviar</div>
                     <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf" style="display: none;">
+                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf" style="display: none;" aria-label="Arquivo de Razão de Fornecedores">
                 </div>
             </div>
             <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos de NFs</button>
 
-            <div id="loadingSpinnerFornecedores" class="spinner-container hidden">
+            <div id="loadingSpinnerFornecedores" class="spinner-container hidden" aria-live="polite">
                 <div class="spinner"></div>
                 <p>Analisando razões de fornecedores, aguarde...</p>
             </div>
@@ -356,7 +357,6 @@
             let str = String(valorStr).trim().toUpperCase();
             let multiplicador = 1;
 
-            // Identifica sufixos contábeis comuns (D = Débito / C = Crédito)
             if (str.endsWith('D')) {
                 multiplicador = -1;
                 str = str.slice(0, -1).trim();
@@ -365,13 +365,10 @@
                 str = str.slice(0, -1).trim();
             }
 
-            // Remove caracteres monetários e formata separadores decimais brasileiros/americanos
             str = str.replace(/[R$\s]/g, '');
             if (str.includes(',') && str.includes('.')) {
-                // Formato 1.234,56
                 str = str.replace(/\./g, '').replace(',', '.');
             } else if (str.includes(',')) {
-                // Formato 1234,56
                 str = str.replace(',', '.');
             }
 
@@ -386,7 +383,6 @@
             const primeiraAba = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[primeiraAba];
 
-            // Propaga valores de células mescladas verticalmente para evitar campos vazios
             if (worksheet['!merges']) {
                 worksheet['!merges'].forEach(merge => {
                     const startCellRef = XLSX.utils.encode_cell({ r: merge.s.r, c: merge.s.c });
@@ -404,7 +400,6 @@
                 });
             }
 
-            // Converte para JSON limpando quebras de linha excessivas nas chaves/valores de texto
             const dadosBrutos = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
             return dadosBrutos.map(linha => {
                 const linhaLimpa = {};
