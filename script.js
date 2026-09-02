@@ -8,7 +8,7 @@ if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 }
 
-function mudarAba(modulo) {
+window.mudarAba = function(modulo) {
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.modulo').forEach(mod => mod.classList.add('hidden'));
     if (modulo === 'bancaria') {
@@ -88,125 +88,60 @@ function lerArquivoPlanilha(file, origem) {
     });
 }
 
-// Converte um valor de célula em número, detectando sufixo D/C (débito/crédito)
-// quando presente (ex: "1.500,00D") e aceitando vírgula ou ponto decimal.
-function parseValorComTipo(bruto) {
-    if (bruto === undefined || bruto === null) return { valor: 0, tipo: null };
-    let str = String(bruto).trim();
-    if (!str) return { valor: 0, tipo: null };
-    let tipo = null;
-    if (/[DC]$/i.test(str) && /\d/.test(str)) {
-        tipo = str.slice(-1).toUpperCase();
-        str = str.slice(0, -1).trim();
-    }
-    str = str.replace('R$', '').replace(/\s/g, '');
-    if (str.includes(',') && str.includes('.')) {
-        str = str.replace(/\./g, '').replace(',', '.');
-    } else if (str.includes(',')) {
-        str = str.replace(',', '.');
-    }
-    let v = parseFloat(str);
-    if (isNaN(v)) return { valor: 0, tipo };
-    if (v < 0 && !tipo) tipo = 'D';
-    return { valor: Math.abs(v), tipo };
-}
-
-// Procura, nas primeiras linhas da planilha, qual coluna corresponde a cada
-// campo. Cobre nomenclaturas comuns usadas por ERPs (Domínio, Sismade,
-// SAP, Totvs, planilhas exportadas de bancos etc.).
-function detectarColunasPlanilha(linhaHeader) {
-    const col = linhaHeader.map(c => String(c || '').toLowerCase().trim());
-    const achar = (...termos) => col.findIndex(c => termos.some(t => c.includes(t)));
-    return {
-        data: achar('data', 'dt.', 'date'),
-        historico: achar('históric', 'historic', 'descri', 'lançamento', 'lancamento', 'complemento', 'memo'),
-        conta: achar('conta contáb', 'conta contab', 'cta cont', 'cód. conta', 'codigo conta', 'plano de conta', 'conta'),
-        // Débito/Crédito separados: o padrão mais comum em razões contábeis de ERP
-        debito: achar('débito', 'debito', 'valor débito', 'valor debito'),
-        credito: achar('crédito', 'credito', 'valor crédito', 'valor credito'),
-        // Coluna única de valor (extratos bancários, planilhas simples)
-        valor: achar('valor', 'montante', 'quantia', 'monto')
-    };
-}
-
 function normalizarDadosPlanilha(linhas, origem) {
     let listaNormalizada = [];
     if (!linhas || linhas.length === 0) return listaNormalizada;
-
-    // trata CSV que caiu inteiro numa única "coluna" separada por ;
+    let idxData = 0, idxDesc = 1, idxValor = 2, idxConta = -1;
     linhas = linhas.map(linha => {
         if (linha.length === 1 && typeof linha[0] === 'string' && linha[0].includes(';')) {
             return linha[0].split(';');
         }
         return linha;
     });
-
-    // Procura a linha de cabeçalho (até as 10 primeiras linhas) que tenha,
-    // no mínimo, coluna de Data + (Valor único OU Débito/Crédito)
-    let colunas = null;
-    for (let i = 0; i < Math.min(10, linhas.length); i++) {
-        if (!linhas[i]) continue;
-        const teste = detectarColunasPlanilha(linhas[i]);
-        if (teste.data !== -1 && (teste.valor !== -1 || teste.debito !== -1 || teste.credito !== -1)) {
-            colunas = teste;
-            break;
-        }
+    for (let i = 0; i < Math.min(5, linhas.length); i++) {
+        const linhaHeader = linhas[i].map(c => String(c || '').toLowerCase().trim());
+        const dataFind = linhaHeader.findIndex(c => c.includes('data') || c.includes('date'));
+        const descFind = linhaHeader.findIndex(c => c.includes('desc') || c.includes('historico') || c.includes('histó'));
+        const valorFind = linhaHeader.findIndex(c => c.includes('valor') || c.includes('monto') || c.includes('quant'));
+        const contaFind = linhaHeader.findIndex(c => c.includes('conta') || c.includes('cto') || c.includes('codigo') || c.includes('cód'));
+        if (dataFind !== -1) idxData = dataFind;
+        if (descFind !== -1) idxDesc = descFind;
+        if (valorFind !== -1) idxValor = valorFind;
+        if (contaFind !== -1) idxConta = contaFind;
     }
-    // Se não achou cabeçalho reconhecível, assume o layout posicional clássico
-    if (!colunas) {
-        colunas = { data: 0, historico: 1, valor: 2, conta: -1, debito: -1, credito: -1 };
-    }
-
-    let chaveAnterior = null; // usada para descartar linhas duplicadas (células mescladas)
     for (let i = 0; i < linhas.length; i++) {
-        const linha = linhas[i];
+        let linha = linhas[i];
         if (!linha || linha.length === 0) continue;
-
-        const strData = String(linha[colunas.data] || '').trim();
-        if (!strData || /^data$|^date$/i.test(strData)) continue;
-
-        const dataFormatada = formatarDataBR(strData);
-        const descricao = String(linha[colunas.historico] ?? '').trim() || 'Sem histórico';
-        const contaContabil = colunas.conta !== -1 && linha[colunas.conta]
-            ? String(linha[colunas.conta]).trim() : 'N/A';
-
-        let valor = 0, tipo = null;
-        if (colunas.debito !== -1 || colunas.credito !== -1) {
-            // Layout com colunas separadas de Débito e Crédito
-            const deb = colunas.debito !== -1 ? parseValorComTipo(linha[colunas.debito]) : { valor: 0 };
-            const cred = colunas.credito !== -1 ? parseValorComTipo(linha[colunas.credito]) : { valor: 0 };
-            if (deb.valor > 0) { valor = deb.valor; tipo = 'D'; }
-            else if (cred.valor > 0) { valor = cred.valor; tipo = 'C'; }
-        } else if (colunas.valor !== -1) {
-            // Layout com coluna única de valor (pode vir com sinal ou sufixo D/C)
-            const r = parseValorComTipo(linha[colunas.valor]);
-            valor = r.valor;
-            tipo = r.tipo;
+        const strData = String(linha[idxData] || '').trim();
+        const strColHeader = strData.toLowerCase();
+        if (strColHeader.includes('data') || strColHeader.includes('date')) continue;
+        let dataFormatada = formatarDataBR(strData);
+        let descricao = String(linha[idxDesc] || 'Sem histórico').trim();
+        let contaContabil = idxConta !== -1 && linha[idxConta] ? String(linha[idxConta]).trim() : 'N/A';
+        let valorBruto = String(linha[idxValor] || '0').replace('R$', '').replace(/\s/g, '').trim();
+        if (valorBruto.includes(',') && valorBruto.includes('.')) {
+            valorBruto = valorBruto.replace(/\./g, '').replace(',', '.');
+        } else if (valorBruto.includes(',')) {
+            valorBruto = valorBruto.replace(',', '.');
         }
-
-        if (!valor || isNaN(valor)) continue;
-
-        // Evita contar duas vezes a mesma linha quando o export do ERP repete
-        // o conteúdo por causa de células mescladas
-        const chaveLinha = `${dataFormatada}|${descricao}|${valor}|${tipo}`;
-        if (chaveLinha === chaveAnterior) continue;
-        chaveAnterior = chaveLinha;
-
-        listaNormalizada.push({
-            id: `${origem}_${i}`,
-            data: dataFormatada,
-            descricao: descricao,
-            contaContabil: contaContabil,
-            valor: Math.round(valor * 100) / 100,
-            tipo: tipo, // 'D' = Débito/Pagamento, 'C' = Crédito/Compra, null = indefinido
-            conciliado: false
-        });
+        let valor = parseFloat(valorBruto);
+        if (!isNaN(valor) && valor !== 0) {
+            listaNormalizada.push({
+                id: `${origem}_${i}`,
+                data: dataFormatada,
+                descricao: descricao || 'Sem Histórico',
+                contaContabil: contaContabil,
+                valor: Math.round(valor * 100) / 100,
+                tipo: null,
+                conciliado: false
+            });
+        }
     }
     return listaNormalizada;
 }
 
 // =========================================================================
-// LEITOR: OFX (extrato bancário padrão)
+// LEITOR: OFX
 // =========================================================================
 function lerArquivoOFX(file, origem) {
     return new Promise((resolve, reject) => {
@@ -248,11 +183,8 @@ function lerArquivoOFX(file, origem) {
 }
 
 // =========================================================================
-// LEITOR: PDF (Razão contábil — layout "Data Lote Histórico Cta.C.Part.")
+// LEITOR: PDF
 // =========================================================================
-
-// Reconstrói as linhas do PDF agrupando os itens de texto por posição (Y/X),
-// já que o pdf.js entrega os textos soltos, sem quebras de linha reais.
 async function extrairLinhasPDF(file) {
     const buffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
@@ -262,17 +194,16 @@ async function extrairLinhasPDF(file) {
         const content = await page.getTextContent();
         const porLinha = {};
         content.items.forEach(item => {
-            // agrupa textos que estão na mesma "altura" (tolerância de 2px)
             const y = Math.round(item.transform[5] / 2) * 2;
             if (!porLinha[y]) porLinha[y] = [];
             porLinha[y].push({ x: item.transform[4], texto: item.str });
         });
         Object.keys(porLinha)
             .map(Number)
-            .sort((a, b) => b - a) // de cima para baixo
+            .sort((a, b) => b - a)
             .forEach(y => {
                 const linha = porLinha[y]
-                    .sort((a, b) => a.x - b.x) // da esquerda para a direita
+                    .sort((a, b) => a.x - b.x)
                     .map(o => o.texto)
                     .join(' ')
                     .replace(/\s+/g, ' ')
@@ -283,19 +214,12 @@ async function extrairLinhasPDF(file) {
     return linhas;
 }
 
-// Pega o último token no formato de valor monetário (ex: 1.500,00 / 1.500,00C)
-// dentro de uma string, pois nas linhas de transação o valor sempre vem no final.
 function extrairUltimoValor(str) {
     const matches = str.match(/\d{1,3}(?:\.\d{3})*,\d{2}[DC]?/g);
     if (!matches || matches.length === 0) return null;
     return matches[matches.length - 1];
 }
 
-// Converte as linhas de texto extraídas do PDF em lançamentos.
-// Layout esperado (Razão contábil):
-//   "Conta: 15382 - 2.1.01.02.01.0001 Fabio Ramos De Alencar"   -> cabeçalho da conta
-//   "PRESTAÇÃO DE SERVIÇOS CONF. NF # 76 ..."                    -> descrição
-//   "03/06/2026 11522 874 1.500,00"                               -> data + lote + valor
 function normalizarRazaoPDF(linhas, origem) {
     const lancamentos = [];
     const regexConta = /^Conta:\s*(\d+)\s*-\s*[\d.]+\s*(.*)$/i;
@@ -326,7 +250,6 @@ function normalizarRazaoPDF(linhas, origem) {
                 const valorLimpo = valorToken.replace(/[DC]$/, '');
                 const valor = parseFloat(valorLimpo.replace(/\./g, '').replace(',', '.'));
 
-                // Se sobrar texto além do valor nessa mesma linha, é complemento da descrição
                 const descExtra = resto.replace(valorToken, '').trim();
                 const descricaoFinal = (descExtra && descExtra.length > 3 && !/^\d+\s*$/.test(descExtra))
                     ? `${ultimaDescricao} ${descExtra}`.trim()
@@ -339,7 +262,7 @@ function normalizarRazaoPDF(linhas, origem) {
                         descricao: descricaoFinal,
                         contaContabil: contaAtual,
                         valor: Math.round(valor * 100) / 100,
-                        tipo: tipo, // 'D' = Débito/Pagamento, 'C' = Crédito/Compra, null = indefinido
+                        tipo: tipo,
                         conciliado: false
                     });
                 }
@@ -347,13 +270,8 @@ function normalizarRazaoPDF(linhas, origem) {
             return;
         }
 
-        // Linha que não é cabeçalho de conta nem linha de transação:
-        // guarda como candidata a descrição do próximo lançamento,
-        // removendo valores monetários (ex: "1.500,00C") que às vezes
-        // vazam para a mesma linha por causa do layout do PDF.
         if (!/^\d/.test(linha)) {
-            const semValor = linha.replace(/\d{1,3}(?:\.\d{3})*,\d{2}[DC]?\s*$/i, '').trim();
-            ultimaDescricao = semValor || linha;
+            ultimaDescricao = linha;
         }
     });
 
@@ -368,15 +286,13 @@ async function lerArquivoPDF(file, origem) {
 // =========================================================================
 // MÓDULO: CONCILIAÇÃO BANCÁRIA
 // =========================================================================
-
-// Classifica um lançamento como Pagamento (saída) ou Recebimento (entrada)
 function classificarMovimento(item) {
     if (item.tipo === 'D') return 'Pagamento';
     if (item.tipo === 'C') return 'Recebimento';
     return item.valor < 0 ? 'Pagamento' : 'Recebimento';
 }
 
-async function processarConciliacaoBancaria() {
+window.processarConciliacaoBancaria = async function() {
     const extratoInput = document.getElementById('extratoFile').files[0];
     const razaoInput = document.getElementById('razaoFile').files[0];
     if (!extratoInput || !razaoInput) {
@@ -402,12 +318,10 @@ async function processarConciliacaoBancaria() {
             }
         });
 
-        // Lançamentos que estão no extrato (banco) mas ainda faltam ser lançados no razão
         const faltamNoRazao = dadosExtrato
             .filter(item => !item.conciliado)
             .map(item => ({ ...item, status: `${classificarMovimento(item)} não lançado no Razão` }));
 
-        // Lançamentos que estão no razão mas ainda não aparecem no extrato (a compensar / verificar)
         const sobramNoRazao = dadosRazao
             .filter(item => !item.conciliado)
             .map(item => ({ ...item, status: `${classificarMovimento(item)} lançado no Razão sem correspondência no Extrato — verificar` }));
@@ -445,7 +359,7 @@ function renderizarTabelaUnica(idTabela, lista) {
             <td>${formatarDataBR(item.data)}</td>
             <td>${item.descricao}</td>
             <td style="color: ${item.valor < 0 ? '#dc2626' : '#16a34a'}; font-weight: bold;">${valorFormatado}</td>
-            <td><span style="font-weight:bold; color: ${movimento === 'Pagamento' ? '#dc2626' : '#16a34a'};">${movimento === 'Pagamento' ? '↑ Pagamento' : '↓ Recebimento'}</span></td>
+            <td>${movimento === 'Pagamento' ? '⬆️ Pagamento' : '⬇️ Recebimento'}</td>
             <td><span style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold;">❌ ${item.status}</span></td>
         `;
         tbody.appendChild(tr);
@@ -460,7 +374,7 @@ function extrairNumeroNF(texto) {
     return match ? match[1] : null;
 }
 
-async function processarFornecedores() {
+window.processarFornecedores = async function() {
     const fornecedorInput = document.getElementById('fornecedorFile').files[0];
     if (!fornecedorInput) {
         alert("Por favor, selecione o arquivo do razão de fornecedores!");
@@ -483,7 +397,6 @@ async function processarFornecedores() {
             const numNF = extrairNumeroNF(item.descricao);
             const chave = numNF ? `NF ${numNF}` : 'Sem NF Identificada';
 
-            // Prioriza o indicador D/C extraído do PDF; se não houver, usa palavras-chave
             let ehPagamento;
             if (item.tipo === 'D') {
                 ehPagamento = true;
@@ -522,9 +435,6 @@ async function processarFornecedores() {
 
         dadosFornecedoresProcessados = Object.values(notasFiscais);
 
-        // saldo > 0  -> ainda deve (em aberto)
-        // saldo < 0  -> pagou a mais do que a nota (verificar)
-        // saldo == 0 -> quitado
         const emAberto = dadosFornecedoresProcessados.filter(n => n.saldo > 0.01);
         const quitadas = dadosFornecedoresProcessados.filter(n => Math.abs(n.saldo) <= 0.01);
         const pagosAMaior = dadosFornecedoresProcessados.filter(n => n.saldo < -0.01);
@@ -536,7 +446,7 @@ async function processarFornecedores() {
         document.getElementById('valorTotalAberto').innerText = formatBRL(valorTotalAberto);
         document.getElementById('qtdVerificar').innerText = pagosAMaior.length;
 
-        filtrarTabelaFornecedores('todos');
+        window.filtrarTabelaFornecedores('todos');
         if (spinner) spinner.classList.add('hidden');
         if (resultadoContainer) resultadoContainer.classList.remove('hidden');
     } catch (erro) {
@@ -546,7 +456,7 @@ async function processarFornecedores() {
     }
 }
 
-function filtrarTabelaFornecedores(tipoFiltro) {
+window.filtrarTabelaFornecedores = function(tipoFiltro) {
     filtroFornecedoresAtual = tipoFiltro;
     let listaFiltrada = [];
     const tituloTabela = document.getElementById('tituloTabelaFornecedores');
@@ -649,7 +559,7 @@ function renderizarTabelaFornecedores(idTabela, lista) {
     });
 }
 
-function alternarAgrupamento(index) {
+window.alternarAgrupamento = function(index) {
     const trDetalhes = document.getElementById(`detalhes-${index}`);
     const btn = document.getElementById(`btn-toggle-${index}`);
     if (trDetalhes && btn) {
@@ -665,7 +575,7 @@ function alternarAgrupamento(index) {
     }
 }
 
-function exportarRelatorioFornecedoresXLSX() {
+window.exportarRelatorioFornecedoresXLSX = function() {
     let listaFiltrada = [];
     if (filtroFornecedoresAtual === 'aberto') {
         listaFiltrada = dadosFornecedoresProcessados.filter(n => n.saldo > 0.01);
