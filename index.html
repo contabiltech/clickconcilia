@@ -3,225 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClickConcilia - Ferramenta de Conciliação</title>
+    <title>ClickConcilia</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-
-    <style>
-        /* =========================================================
-            AJUSTES E EFEITOS DE INTERAÇÃO (HOVER / ACTIVE)
-            ========================================================= */
-
-        /* Título do Cabeçalho */
-        header h1 {
-            cursor: pointer;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            user-select: none;
-        }
-
-        header h1:hover {
-            opacity: 0.85;
-            transform: scale(1.02);
-        }
-
-        /* Estilização para alternância das abas de navegação */
-        .modulo.hidden {
-            display: none !important;
-        }
-
-        .nav-btn {
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 6px 6px 0 0;
-            border: none;
-            background: transparent;
-            font-size: 14px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .nav-btn:hover {
-            background-color: rgba(37, 99, 235, 0.1);
-            color: #2563eb;
-            transform: translateY(-2px);
-        }
-
-        .nav-btn.active {
-            font-weight: bold;
-            border-bottom: 3px solid #2563eb;
-            background-color: rgba(37, 99, 235, 0.15);
-        }
-
-        /* Dropzones de Upload */
-        .dropzone {
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-
-        .dropzone:hover, .dropzone.dragover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
-            border-color: #2563eb;
-        }
-
-        .btn-upload-click {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 16px;
-            background-color: #2563eb;
-            color: #ffffff;
-            font-size: 13px;
-            font-weight: 600;
-            border-radius: 6px;
-            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-            pointer-events: none; /* Garante que o clique passe direto para a dropzone principal */
-        }
-
-        .dropzone:hover .btn-upload-click {
-            background-color: #1d4ed8;
-            transform: scale(1.04);
-            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-        }
-
-        /* Cards de Filtro e Resumo */
-        .card {
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .card-interativo {
-            cursor: pointer;
-            user-select: none;
-            position: relative;
-        }
-
-        .card-interativo:hover {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-            filter: brightness(1.03);
-        }
-
-        .card-interativo:active {
-            transform: translateY(-1px) scale(0.99);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Botões Globais */
-        .btn-primary, .btn-secondary, .btn-exportar {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            cursor: pointer;
-        }
-
-        .btn-primary:hover, .btn-secondary:hover, .btn-exportar:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            filter: brightness(1.1);
-        }
-
-        .btn-primary:active, .btn-secondary:active, .btn-exportar:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Tabelas e Linhas */
-        .tabela-container {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            min-width: 950px;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 10px 12px;
-            word-wrap: break-word;
-        }
-
-        /* Alinhamento de Colunas */
-        .col-valor-header {
-            text-align: right !important; /* Ajustado para alinhar perfeitamente com os valores monetários */
-        }
-
-        .col-valor-cell {
-            text-align: right !important;
-        }
-
-        tbody tr {
-            transition: background-color 0.15s ease, transform 0.1s ease;
-        }
-
-        tbody tr:hover {
-            background-color: rgba(37, 99, 235, 0.05);
-        }
-
-        #tblFornecedores td:nth-child(6),
-        #tblFornecedores td:nth-child(7),
-        #tblFornecedores td:nth-child(8) {
-            text-align: right !important;
-        }
-
-        #tblFornecedores td:nth-child(9),
-        #tblFornecedores th:last-child {
-            text-align: center !important;
-        }
-
-        /* Formatadores de Status Badges */
-        .status-badge, .badge, td span {
-            white-space: nowrap !important;
-            display: inline-flex !important;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            padding: 4px 8px;
-            box-sizing: border-box;
-            transition: transform 0.15s ease;
-        }
-
-        tbody tr:hover .status-badge,
-        tbody tr:hover .badge {
-            transform: scale(1.05);
-        }
-    </style>
 </head>
 <body>
     <header>
-        <h1 onclick="window.location.reload();" title="Clique para recarregar a página">ClickConcilia</h1>
+        <h1>ClickConcilia</h1>
         <nav>
-            <button id="btn-aba-bancaria" class="nav-btn active" onclick="mudarAba('bancaria')" title="Alternar para Conciliação Bancária">🏦 Conciliação Bancária</button>
-            <button id="btn-aba-fornecedores" class="nav-btn" onclick="mudarAba('fornecedores')" title="Alternar para Conciliação de Fornecedores">🏬 Conciliação de Fornecedores</button>
+            <button class="nav-btn active" onclick="mudarAba('bancaria')">🏦 Conciliação Bancária</button>
+            <button class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
         </nav>
     </header>
-
     <main>
-        <!-- MÓDULO: BANCÁRIA -->
+        <!-- MÓDULO: CONCILIAÇÃO BANCÁRIA -->
         <section id="mod-bancaria" class="modulo active">
             <h2>Conciliação Bancária</h2>
+            <p class="modulo-desc">
+                Compara os lançamentos do <strong>Extrato</strong> (banco) com os lançamentos do
+                <strong>Razão contábil</strong> e identifica, dos dois lados, quais
+                <strong>pagamentos ou recebimentos ainda não foram lançados</strong> — ou seja,
+                o que aparece em um arquivo e não tem correspondência (mesmo valor) no outro.
+            </p>
             <div class="upload-container">
-                <div class="dropzone" onclick="document.getElementById('extratoFile').click()" title="Clique ou arraste o arquivo do Extrato">
+                <div class="dropzone">
                     <h3>Extrato</h3>
-                    <p id="label-extratoFile">Arraste seu arquivo aqui</p>
-                    <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .OFX, .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf" style="display: none;">
+                    <p>Formatos: .OFX, .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf">
                 </div>
-                <div class="dropzone" onclick="document.getElementById('razaoFile').click()" title="Clique ou arraste o arquivo do Razão">
+                <div class="dropzone">
                     <h3>Razão</h3>
-                    <p id="label-razaoFile">Arraste seu arquivo aqui</p>
-                    <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf" style="display: none;">
+                    <p>Formatos: .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf">
                 </div>
             </div>
             
             <button class="btn-primary" onclick="processarConciliacaoBancaria()">Processar Conciliação</button>
-
             <div id="loadingSpinner" class="spinner-container hidden">
                 <div class="spinner"></div>
                 <p>Processando arquivos, aguarde...</p>
             </div>
-
             <div id="resultadoBancaria" class="resultado-container hidden">
                 <div class="cards-resumo">
                     <div class="card azul">
@@ -237,16 +59,22 @@
                         <p>Lançamentos Pendentes</p>
                     </div>
                 </div>
-
                 <div class="tabela-container" style="margin-top: 2rem;">
                     <h3>📋 Lançamentos Pendentes / Divergências</h3>
+                    <p class="tabela-legenda">
+                        <strong>Não localizado no razão</strong> = está no extrato (banco) mas ainda
+                        precisa ser lançado no razão contábil.<br>
+                        <strong>Não localizado no extrato</strong> = está lançado no razão mas ainda
+                        não "caiu"/compensou no banco — verificar.
+                    </p>
                     <table id="tblExtrato">
                         <thead>
                             <tr>
-                                <th style="width: 15%; text-align: center;">Data</th>
-                                <th style="width: 50%; text-align: left;">Descrição</th>
-                                <th style="width: 18%;" class="col-valor-header">Valor</th>
-                                <th style="width: 17%; text-align: center;">Status</th>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Movimento</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -254,62 +82,69 @@
                 </div>
             </div>
         </section>
-
-        <!-- MÓDULO: FORNECEDORES -->
+        <!-- MÓDULO: CONCILIAÇÃO DE FORNECEDORES -->
         <section id="mod-fornecedores" class="modulo hidden">
             <h2>Conciliação de Fornecedores</h2>
+            <p class="modulo-desc">
+                Lê o Razão de Fornecedores, agrupa os lançamentos por <strong>Nota Fiscal</strong>
+                (compras x pagamentos) e calcula o <strong>saldo em aberto</strong> de cada título.
+                Também sinaliza quando um fornecedor recebeu <strong>pagamento a maior</strong> que
+                o valor da nota, para que seja verificado.
+            </p>
             <div class="upload-container">
-                <div class="dropzone unica" onclick="document.getElementById('fornecedorFile').click()" title="Clique ou arraste o arquivo de Razão de Fornecedores">
+                <div class="dropzone unica">
                     <h3>Razão de Fornecedores</h3>
-                    <p id="label-fornecedorFile">Arraste seu arquivo aqui</p>
-                    <div class="btn-upload-click">Clique aqui para enviar</div>
-                    <p class="formatos" style="margin-top: 8px;">Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf" style="display: none;">
+                    <p>Formatos: .CSV, .XLSX, .PDF</p>
+                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf">
                 </div>
             </div>
             <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos de NFs</button>
-
             <div id="loadingSpinnerFornecedores" class="spinner-container hidden">
                 <div class="spinner"></div>
                 <p>Analisando razões de fornecedores, aguarde...</p>
             </div>
-
             <div id="resultadoFornecedores" class="resultado-container hidden">
                 <div class="cards-resumo">
-                    <div class="card azul card-interativo" id="cardFiltroTodos" onclick="filtrarTabelaFornecedores('todos')" title="Clique para filtrar todos os lançamentos">
+                    <div class="card azul" id="cardFiltroTodos" onclick="filtrarTabelaFornecedores('todos')" style="cursor: pointer;">
                         <h4 id="qtdTotalFornecedores">0</h4>
                         <p>Total de Lançamentos</p>
                     </div>
-                    <div class="card amarelo card-interativo" id="cardFiltroAberto" onclick="filtrarTabelaFornecedores('aberto')" title="Clique para filtrar apenas títulos em aberto">
+                    <div class="card amarelo" id="cardFiltroAberto" onclick="filtrarTabelaFornecedores('aberto')" style="cursor: pointer;">
                         <h4 id="qtdComSaldo">0</h4>
                         <p>NFs / Títulos em Aberto</p>
                     </div>
-                    <div class="card verde card-interativo" id="cardFiltroQuitados" onclick="filtrarTabelaFornecedores('quitados')" title="Clique para filtrar apenas títulos quitados">
+                    <div class="card verde" id="cardFiltroQuitados" onclick="filtrarTabelaFornecedores('quitados')" style="cursor: pointer;">
                         <h4 id="qtdQuitados">0</h4>
                         <p>Títulos Quitados</p>
                     </div>
+                    <div class="card roxo" id="cardValorAberto">
+                        <h4 id="valorTotalAberto">R$ 0,00</h4>
+                        <p>Valor Total em Aberto</p>
+                    </div>
+                    <div class="card laranja" id="cardFiltroVerificar" onclick="filtrarTabelaFornecedores('verificar')" style="cursor: pointer;">
+                        <h4 id="qtdVerificar">0</h4>
+                        <p>Pagos a Maior (verificar)</p>
+                    </div>
                 </div>
-
                 <div class="tabela-container" style="margin-top: 2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
                         <h3 id="tituloTabelaFornecedores">📋 Resumo de Títulos e Saldos por Fornecedor (Todos)</h3>
-                        <button class="btn-secondary btn-exportar" onclick="exportarRelatorioFornecedoresXLSX()" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold;" title="Baixar relatório formatado em Excel">
+                        <button class="btn-secondary" onclick="exportarRelatorioFornecedoresXLSX()" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
                             📊 Exportar Filtro em Excel (.xlsx)
                         </button>
                     </div>
-
                     <table id="tblFornecedores">
                         <thead>
                             <tr>
-                                <th style="width: 3%; text-align: center;"></th>
-                                <th style="width: 9%; text-align: center;">Data</th>
-                                <th style="width: 7%; text-align: center;">Conta Contábil</th>
-                                <th style="width: 31%; text-align: left;">Descrição do Lançamento</th>
-                                <th style="width: 10%; text-align: center;">Nº da NF</th>
-                                <th style="width: 11%; text-align: right;">Total Pagamentos</th>
-                                <th style="width: 11%; text-align: right;">Total Compras</th>
-                                <th style="width: 11%; text-align: right;">Saldo</th>
-                                <th style="width: 17%; text-align: center;">Status</th>
+                                <th style="width: 40px; text-align: center;"></th>
+                                <th>Data</th>
+                                <th>Conta Contábil</th>
+                                <th>Descrição do Lançamento</th>
+                                <th>Nº da NF</th>
+                                <th>Total Pagamentos (Débitos)</th>
+                                <th>Total Compras (Créditos)</th>
+                                <th>Saldo Remanescente</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -318,76 +153,6 @@
             </div>
         </section>
     </main>
-
-    <script>
-        // Função para alternar as abas da interface
-        function mudarAba(aba) {
-            const modBancaria = document.getElementById('mod-bancaria');
-            const modFornecedores = document.getElementById('mod-fornecedores');
-            const btnBancaria = document.getElementById('btn-aba-bancaria');
-            const btnFornecedores = document.getElementById('btn-aba-fornecedores');
-
-            if (aba === 'bancaria') {
-                modBancaria.classList.remove('hidden');
-                modBancaria.classList.add('active');
-                modFornecedores.classList.add('hidden');
-                modFornecedores.classList.remove('active');
-
-                btnBancaria.classList.add('active');
-                btnFornecedores.classList.remove('active');
-            } else if (aba === 'fornecedores') {
-                modFornecedores.classList.remove('hidden');
-                modFornecedores.classList.add('active');
-                modBancaria.classList.add('hidden');
-                modBancaria.classList.remove('active');
-
-                btnFornecedores.classList.add('active');
-                btnBancaria.classList.remove('active');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const inputs = ['extratoFile', 'razaoFile', 'fornecedorFile'];
-
-            inputs.forEach(id => {
-                const input = document.getElementById(id);
-                if (!input) return;
-                
-                const dropzone = input.parentElement;
-                const label = document.getElementById(`label-${id}`);
-
-                dropzone.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    dropzone.classList.add('dragover');
-                });
-
-                dropzone.addEventListener('dragleave', () => {
-                    dropzone.classList.remove('dragover');
-                });
-
-                dropzone.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    dropzone.classList.remove('dragover');
-                    if (e.dataTransfer.files.length > 0) {
-                        input.files = e.dataTransfer.files;
-                        atualizarTexto(input, label);
-                    }
-                });
-
-                input.addEventListener('change', () => {
-                    atualizarTexto(input, label);
-                });
-            });
-
-            function atualizarTexto(input, label) {
-                if (input.files.length > 0) {
-                    label.innerHTML = `✅ <strong>${input.files[0].name}</strong>`;
-                } else {
-                    label.innerHTML = `Arraste seu arquivo aqui`;
-                }
-            }
-        });
-    </script>
     <script src="script.js"></script>
 </body>
 </html>
