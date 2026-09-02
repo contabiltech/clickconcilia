@@ -88,54 +88,119 @@ function lerArquivoPlanilha(file, origem) {
     });
 }
 
+// Converte um valor de célula em número, detectando sufixo D/C (débito/crédito)
+// quando presente (ex: "1.500,00D") e aceitando vírgula ou ponto decimal.
+function parseValorComTipo(bruto) {
+    if (bruto === undefined || bruto === null) return { valor: 0, tipo: null };
+    let str = String(bruto).trim();
+    if (!str) return { valor: 0, tipo: null };
+    let tipo = null;
+    if (/[DC]$/i.test(str) && /\d/.test(str)) {
+        tipo = str.slice(-1).toUpperCase();
+        str = str.slice(0, -1).trim();
+    }
+    str = str.replace('R$', '').replace(/\s/g, '');
+    if (str.includes(',') && str.includes('.')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+    } else if (str.includes(',')) {
+        str = str.replace(',', '.');
+    }
+    let v = parseFloat(str);
+    if (isNaN(v)) return { valor: 0, tipo };
+    if (v < 0 && !tipo) tipo = 'D';
+    return { valor: Math.abs(v), tipo };
+}
+
+// Procura, nas primeiras linhas da planilha, qual coluna corresponde a cada
+// campo. Cobre nomenclaturas comuns usadas por ERPs (Domínio, Sismade,
+// SAP, Totvs, planilhas exportadas de bancos etc.).
+function detectarColunasPlanilha(linhaHeader) {
+    const col = linhaHeader.map(c => String(c || '').toLowerCase().trim());
+    const achar = (...termos) => col.findIndex(c => termos.some(t => c.includes(t)));
+    return {
+        data: achar('data', 'dt.', 'date'),
+        historico: achar('históric', 'historic', 'descri', 'lançamento', 'lancamento', 'complemento', 'memo'),
+        conta: achar('conta contáb', 'conta contab', 'cta cont', 'cód. conta', 'codigo conta', 'plano de conta', 'conta'),
+        // Débito/Crédito separados: o padrão mais comum em razões contábeis de ERP
+        debito: achar('débito', 'debito', 'valor débito', 'valor debito'),
+        credito: achar('crédito', 'credito', 'valor crédito', 'valor credito'),
+        // Coluna única de valor (extratos bancários, planilhas simples)
+        valor: achar('valor', 'montante', 'quantia', 'monto')
+    };
+}
+
 function normalizarDadosPlanilha(linhas, origem) {
     let listaNormalizada = [];
     if (!linhas || linhas.length === 0) return listaNormalizada;
-    let idxData = 0, idxDesc = 1, idxValor = 2, idxConta = -1;
+
+    // trata CSV que caiu inteiro numa única "coluna" separada por ;
     linhas = linhas.map(linha => {
         if (linha.length === 1 && typeof linha[0] === 'string' && linha[0].includes(';')) {
             return linha[0].split(';');
         }
         return linha;
     });
-    for (let i = 0; i < Math.min(5, linhas.length); i++) {
-        const linhaHeader = linhas[i].map(c => String(c || '').toLowerCase().trim());
-        const dataFind = linhaHeader.findIndex(c => c.includes('data') || c.includes('date'));
-        const descFind = linhaHeader.findIndex(c => c.includes('desc') || c.includes('historico') || c.includes('histó'));
-        const valorFind = linhaHeader.findIndex(c => c.includes('valor') || c.includes('monto') || c.includes('quant'));
-        const contaFind = linhaHeader.findIndex(c => c.includes('conta') || c.includes('cto') || c.includes('codigo') || c.includes('cód'));
-        if (dataFind !== -1) idxData = dataFind;
-        if (descFind !== -1) idxDesc = descFind;
-        if (valorFind !== -1) idxValor = valorFind;
-        if (contaFind !== -1) idxConta = contaFind;
+
+    // Procura a linha de cabeçalho (até as 10 primeiras linhas) que tenha,
+    // no mínimo, coluna de Data + (Valor único OU Débito/Crédito)
+    let colunas = null;
+    for (let i = 0; i < Math.min(10, linhas.length); i++) {
+        if (!linhas[i]) continue;
+        const teste = detectarColunasPlanilha(linhas[i]);
+        if (teste.data !== -1 && (teste.valor !== -1 || teste.debito !== -1 || teste.credito !== -1)) {
+            colunas = teste;
+            break;
+        }
     }
+    // Se não achou cabeçalho reconhecível, assume o layout posicional clássico
+    if (!colunas) {
+        colunas = { data: 0, historico: 1, valor: 2, conta: -1, debito: -1, credito: -1 };
+    }
+
+    let chaveAnterior = null; // usada para descartar linhas duplicadas (células mescladas)
     for (let i = 0; i < linhas.length; i++) {
-        let linha = linhas[i];
+        const linha = linhas[i];
         if (!linha || linha.length === 0) continue;
-        const strData = String(linha[idxData] || '').trim();
-        const strColHeader = strData.toLowerCase();
-        if (strColHeader.includes('data') || strColHeader.includes('date')) continue;
-        let dataFormatada = formatarDataBR(strData);
-        let descricao = String(linha[idxDesc] || 'Sem histórico').trim();
-        let contaContabil = idxConta !== -1 && linha[idxConta] ? String(linha[idxConta]).trim() : 'N/A';
-        let valorBruto = String(linha[idxValor] || '0').replace('R$', '').replace(/\s/g, '').trim();
-        if (valorBruto.includes(',') && valorBruto.includes('.')) {
-            valorBruto = valorBruto.replace(/\./g, '').replace(',', '.');
-        } else if (valorBruto.includes(',')) {
-            valorBruto = valorBruto.replace(',', '.');
+
+        const strData = String(linha[colunas.data] || '').trim();
+        if (!strData || /^data$|^date$/i.test(strData)) continue;
+
+        const dataFormatada = formatarDataBR(strData);
+        const descricao = String(linha[colunas.historico] ?? '').trim() || 'Sem histórico';
+        const contaContabil = colunas.conta !== -1 && linha[colunas.conta]
+            ? String(linha[colunas.conta]).trim() : 'N/A';
+
+        let valor = 0, tipo = null;
+        if (colunas.debito !== -1 || colunas.credito !== -1) {
+            // Layout com colunas separadas de Débito e Crédito
+            const deb = colunas.debito !== -1 ? parseValorComTipo(linha[colunas.debito]) : { valor: 0 };
+            const cred = colunas.credito !== -1 ? parseValorComTipo(linha[colunas.credito]) : { valor: 0 };
+            if (deb.valor > 0) { valor = deb.valor; tipo = 'D'; }
+            else if (cred.valor > 0) { valor = cred.valor; tipo = 'C'; }
+        } else if (colunas.valor !== -1) {
+            // Layout com coluna única de valor (pode vir com sinal ou sufixo D/C)
+            const r = parseValorComTipo(linha[colunas.valor]);
+            valor = r.valor;
+            tipo = r.tipo;
         }
-        let valor = parseFloat(valorBruto);
-        if (!isNaN(valor) && valor !== 0) {
-            listaNormalizada.push({
-                id: `${origem}_${i}`,
-                data: dataFormatada,
-                descricao: descricao || 'Sem Histórico',
-                contaContabil: contaContabil,
-                valor: Math.round(valor * 100) / 100,
-                tipo: null, // desconhecido nesta origem
-                conciliado: false
-            });
-        }
+
+        if (!valor || isNaN(valor)) continue;
+
+        // Evita contar duas vezes a mesma linha quando o export do ERP repete
+        // o conteúdo por causa de células mescladas
+        const chaveLinha = `${dataFormatada}|${descricao}|${valor}|${tipo}`;
+        if (chaveLinha === chaveAnterior) continue;
+        chaveAnterior = chaveLinha;
+
+        listaNormalizada.push({
+            id: `${origem}_${i}`,
+            data: dataFormatada,
+            descricao: descricao,
+            contaContabil: contaContabil,
+            valor: Math.round(valor * 100) / 100,
+            tipo: tipo, // 'D' = Débito/Pagamento, 'C' = Crédito/Compra, null = indefinido
+            conciliado: false
+        });
     }
     return listaNormalizada;
 }
@@ -283,9 +348,12 @@ function normalizarRazaoPDF(linhas, origem) {
         }
 
         // Linha que não é cabeçalho de conta nem linha de transação:
-        // guarda como candidata a descrição do próximo lançamento
+        // guarda como candidata a descrição do próximo lançamento,
+        // removendo valores monetários (ex: "1.500,00C") que às vezes
+        // vazam para a mesma linha por causa do layout do PDF.
         if (!/^\d/.test(linha)) {
-            ultimaDescricao = linha;
+            const semValor = linha.replace(/\d{1,3}(?:\.\d{3})*,\d{2}[DC]?\s*$/i, '').trim();
+            ultimaDescricao = semValor || linha;
         }
     });
 
@@ -377,7 +445,7 @@ function renderizarTabelaUnica(idTabela, lista) {
             <td>${formatarDataBR(item.data)}</td>
             <td>${item.descricao}</td>
             <td style="color: ${item.valor < 0 ? '#dc2626' : '#16a34a'}; font-weight: bold;">${valorFormatado}</td>
-            <td>${movimento === 'Pagamento' ? '⬆️ Pagamento' : '⬇️ Recebimento'}</td>
+            <td><span style="font-weight:bold; color: ${movimento === 'Pagamento' ? '#dc2626' : '#16a34a'};">${movimento === 'Pagamento' ? '↑ Pagamento' : '↓ Recebimento'}</span></td>
             <td><span style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold;">❌ ${item.status}</span></td>
         `;
         tbody.appendChild(tr);
