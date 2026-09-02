@@ -16,16 +16,11 @@
             <button class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
         </nav>
     </header>
+
     <main>
         <!-- MÓDULO: CONCILIAÇÃO BANCÁRIA -->
         <section id="mod-bancaria" class="modulo active">
             <h2>Conciliação Bancária</h2>
-            <p class="modulo-desc">
-                Compara os lançamentos do <strong>Extrato</strong> (banco) com os lançamentos do
-                <strong>Razão contábil</strong> e identifica, dos dois lados, quais
-                <strong>pagamentos ou recebimentos ainda não foram lançados</strong> — ou seja,
-                o que aparece em um arquivo e não tem correspondência (mesmo valor) no outro.
-            </p>
             <div class="upload-container">
                 <div class="dropzone">
                     <h3>Extrato</h3>
@@ -40,10 +35,12 @@
             </div>
             
             <button class="btn-primary" onclick="processarConciliacaoBancaria()">Processar Conciliação</button>
+
             <div id="loadingSpinner" class="spinner-container hidden">
                 <div class="spinner"></div>
                 <p>Processando arquivos, aguarde...</p>
             </div>
+
             <div id="resultadoBancaria" class="resultado-container hidden">
                 <div class="cards-resumo">
                     <div class="card azul">
@@ -59,21 +56,15 @@
                         <p>Lançamentos Pendentes</p>
                     </div>
                 </div>
+
                 <div class="tabela-container" style="margin-top: 2rem;">
                     <h3>📋 Lançamentos Pendentes / Divergências</h3>
-                    <p class="tabela-legenda">
-                        <strong>Não localizado no razão</strong> = está no extrato (banco) mas ainda
-                        precisa ser lançado no razão contábil.<br>
-                        <strong>Não localizado no extrato</strong> = está lançado no razão mas ainda
-                        não "caiu"/compensou no banco — verificar.
-                    </p>
                     <table id="tblExtrato">
                         <thead>
                             <tr>
                                 <th>Data</th>
                                 <th>Descrição</th>
                                 <th>Valor</th>
-                                <th>Movimento</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -82,15 +73,10 @@
                 </div>
             </div>
         </section>
+
         <!-- MÓDULO: CONCILIAÇÃO DE FORNECEDORES -->
         <section id="mod-fornecedores" class="modulo hidden">
             <h2>Conciliação de Fornecedores</h2>
-            <p class="modulo-desc">
-                Lê o Razão de Fornecedores, agrupa os lançamentos por <strong>Nota Fiscal</strong>
-                (compras x pagamentos) e calcula o <strong>saldo em aberto</strong> de cada título.
-                Também sinaliza quando um fornecedor recebeu <strong>pagamento a maior</strong> que
-                o valor da nota, para que seja verificado.
-            </p>
             <div class="upload-container">
                 <div class="dropzone unica">
                     <h3>Razão de Fornecedores</h3>
@@ -99,10 +85,12 @@
                 </div>
             </div>
             <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos de NFs</button>
+
             <div id="loadingSpinnerFornecedores" class="spinner-container hidden">
                 <div class="spinner"></div>
                 <p>Analisando razões de fornecedores, aguarde...</p>
             </div>
+
             <div id="resultadoFornecedores" class="resultado-container hidden">
                 <div class="cards-resumo">
                     <div class="card azul" id="cardFiltroTodos" onclick="filtrarTabelaFornecedores('todos')" style="cursor: pointer;">
@@ -117,15 +105,8 @@
                         <h4 id="qtdQuitados">0</h4>
                         <p>Títulos Quitados</p>
                     </div>
-                    <div class="card roxo" id="cardValorAberto">
-                        <h4 id="valorTotalAberto">R$ 0,00</h4>
-                        <p>Valor Total em Aberto</p>
-                    </div>
-                    <div class="card laranja" id="cardFiltroVerificar" onclick="filtrarTabelaFornecedores('verificar')" style="cursor: pointer;">
-                        <h4 id="qtdVerificar">0</h4>
-                        <p>Pagos a Maior (verificar)</p>
-                    </div>
                 </div>
+
                 <div class="tabela-container" style="margin-top: 2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
                         <h3 id="tituloTabelaFornecedores">📋 Resumo de Títulos e Saldos por Fornecedor (Todos)</h3>
@@ -133,6 +114,7 @@
                             📊 Exportar Filtro em Excel (.xlsx)
                         </button>
                     </div>
+
                     <table id="tblFornecedores">
                         <thead>
                             <tr>
@@ -153,6 +135,7 @@
             </div>
         </section>
     </main>
+
     <script src="script.js"></script>
 </body>
 </html>
