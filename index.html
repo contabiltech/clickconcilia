@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClickConcilia</title>
+    <title>ClickConcilia - Inteligência Contábil</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Bibliotecas Necessárias -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
     <header>
-        <h1>ClickConcilia</h1>
+        <h1>Click<span>Concilia</span></h1>
         <nav>
             <button class="nav-btn active" onclick="mudarAba('bancaria')">🏦 Conciliação Bancária</button>
             <button class="nav-btn" onclick="mudarAba('fornecedores')">🏬 Conciliação de Fornecedores</button>
@@ -20,17 +21,21 @@
     <main>
         <!-- MÓDULO: CONCILIAÇÃO BANCÁRIA -->
         <section id="mod-bancaria" class="modulo active">
-            <h2>Conciliação Bancária</h2>
+            <div class="header-modulo">
+                <h2>Conciliação Bancária</h2>
+                <p>Cruza o Extrato com o Razão e aponta divergências (Lê Excel, CSV e PDF).</p>
+            </div>
+            
             <div class="upload-container">
                 <div class="dropzone">
-                    <h3>Extrato</h3>
-                    <p>Formatos: .OFX, .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="extratoFile" accept=".ofx,.csv,.xlsx,.pdf">
+                    <h3>📁 Extrato Bancário</h3>
+                    <p>Formatos: .CSV, .XLSX, .XLS, .PDF</p>
+                    <input type="file" id="extratoFile" accept=".csv,.xlsx,.xls,.pdf">
                 </div>
                 <div class="dropzone">
-                    <h3>Razão</h3>
-                    <p>Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.pdf">
+                    <h3>📁 Razão Contábil</h3>
+                    <p>Formatos: .CSV, .XLSX, .XLS, .PDF</p>
+                    <input type="file" id="razaoFile" accept=".csv,.xlsx,.xls,.pdf">
                 </div>
             </div>
             
@@ -38,7 +43,7 @@
 
             <div id="loadingSpinner" class="spinner-container hidden">
                 <div class="spinner"></div>
-                <p>Processando arquivos, aguarde...</p>
+                <p>Processando e cruzando dados, aguarde...</p>
             </div>
 
             <div id="resultadoBancaria" class="resultado-container hidden">
@@ -53,17 +58,18 @@
                     </div>
                     <div class="card vermelho">
                         <h4 id="qtdPendentes">0</h4>
-                        <p>Lançamentos Pendentes</p>
+                        <p>Lançamentos Divergentes</p>
                     </div>
                 </div>
 
-                <div class="tabela-container" style="margin-top: 2rem;">
-                    <h3>📋 Lançamentos Pendentes / Divergências</h3>
+                <div class="tabela-container">
+                    <h3>📋 Lançamentos Faltantes / Divergências</h3>
                     <table id="tblExtrato">
                         <thead>
                             <tr>
+                                <th>Origem</th>
                                 <th>Data</th>
-                                <th>Descrição</th>
+                                <th>Descrição do Lançamento</th>
                                 <th>Valor</th>
                                 <th>Status</th>
                             </tr>
@@ -76,42 +82,50 @@
 
         <!-- MÓDULO: CONCILIAÇÃO DE FORNECEDORES -->
         <section id="mod-fornecedores" class="modulo hidden">
-            <h2>Conciliação de Fornecedores</h2>
+            <div class="header-modulo">
+                <h2>Conciliação de Fornecedores</h2>
+                <p>Agrupa notas e pagamentos, aponta saldos em aberto e títulos liquidados.</p>
+            </div>
+
             <div class="upload-container">
                 <div class="dropzone unica">
-                    <h3>Razão de Fornecedores</h3>
-                    <p>Formatos: .CSV, .XLSX, .PDF</p>
-                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.pdf">
+                    <h3>📁 Razão de Fornecedores</h3>
+                    <p>Formatos Suportados: Excel (.XLS, .XLSX) e .PDF (Domínio, etc.)</p>
+                    <input type="file" id="fornecedorFile" accept=".csv,.xlsx,.xls,.pdf">
                 </div>
             </div>
-            <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos de NFs</button>
+            <button class="btn-primary" onclick="processarFornecedores()">Analisar Saldos e NFs</button>
 
             <div id="loadingSpinnerFornecedores" class="spinner-container hidden">
                 <div class="spinner"></div>
-                <p>Analisando razões de fornecedores, aguarde...</p>
+                <p>Analisando razões e vinculando notas fiscais...</p>
             </div>
 
             <div id="resultadoFornecedores" class="resultado-container hidden">
-                <div class="cards-resumo">
-                    <div class="card azul" id="cardFiltroTodos" onclick="filtrarTabelaFornecedores('todos')" style="cursor: pointer;">
+                <div class="cards-resumo clickable-cards">
+                    <div class="card azul" onclick="filtrarTabelaFornecedores('todos')" title="Ver Todos">
                         <h4 id="qtdTotalFornecedores">0</h4>
-                        <p>Total de Lançamentos</p>
+                        <p>Total de Fornecedores/NFs</p>
                     </div>
-                    <div class="card amarelo" id="cardFiltroAberto" onclick="filtrarTabelaFornecedores('aberto')" style="cursor: pointer;">
+                    <div class="card amarelo" onclick="filtrarTabelaFornecedores('aberto')" title="Ver Apenas Em Aberto">
                         <h4 id="qtdComSaldo">0</h4>
-                        <p>NFs / Títulos em Aberto</p>
+                        <p>Títulos Em Aberto</p>
                     </div>
-                    <div class="card verde" id="cardFiltroQuitados" onclick="filtrarTabelaFornecedores('quitados')" style="cursor: pointer;">
+                    <div class="card verde" onclick="filtrarTabelaFornecedores('quitados')" title="Ver Liquidados">
                         <h4 id="qtdQuitados">0</h4>
-                        <p>Títulos Quitados</p>
+                        <p>Títulos Liquidados</p>
+                    </div>
+                    <div class="card vermelho destaque">
+                        <h4 id="valorTotalAberto">R$ 0,00</h4>
+                        <p>Saldo Total em Aberto</p>
                     </div>
                 </div>
 
-                <div class="tabela-container" style="margin-top: 2rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
-                        <h3 id="tituloTabelaFornecedores">📋 Resumo de Títulos e Saldos por Fornecedor (Todos)</h3>
-                        <button class="btn-secondary" onclick="exportarRelatorioFornecedoresXLSX()" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                            📊 Exportar Filtro em Excel (.xlsx)
+                <div class="tabela-container">
+                    <div class="flex-header">
+                        <h3 id="tituloTabelaFornecedores">📋 Resumo de Títulos (Todos)</h3>
+                        <button class="btn-export" onclick="exportarRelatorioFornecedoresXLSX()">
+                            📊 Exportar para Excel
                         </button>
                     </div>
 
@@ -119,13 +133,13 @@
                         <thead>
                             <tr>
                                 <th style="width: 40px; text-align: center;"></th>
-                                <th>Data</th>
+                                <th>Data (Ref)</th>
                                 <th>Conta Contábil</th>
-                                <th>Descrição do Lançamento</th>
                                 <th>Nº da NF</th>
-                                <th>Total Pagamentos (Débitos)</th>
-                                <th>Total Compras (Créditos)</th>
-                                <th>Saldo Remanescente</th>
+                                <th>Descrição / Histórico</th>
+                                <th>Compras (Créditos)</th>
+                                <th>Pagamentos (Débitos)</th>
+                                <th>Saldo</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -135,7 +149,6 @@
             </div>
         </section>
     </main>
-
     <script src="script.js"></script>
 </body>
 </html>
